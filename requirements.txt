@@ -7,3 +7,4 @@ pybind11
 setuptools
 wheel
 pyvista
+skimage
