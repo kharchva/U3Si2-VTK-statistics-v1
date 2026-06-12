@@ -6,3 +6,4 @@ scipy
 pybind11
 setuptools
 wheel
+pyvista
