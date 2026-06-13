@@ -16,7 +16,7 @@ def show_clip(field_3d, threshold):
     x, y, z = np.where(field_3d >= threshold)
     val = field_3d[x, y, z]
 
-    print("points:", len(x))
+    # print("points:", len(x))
 
     fig = go.Figure()
 
@@ -71,11 +71,13 @@ def add_cube_edges(fig, Nx, Ny, Nz):
     return fig
 
 
-def show_VTK(field_3d, Nx, Ny, Nz, threshold, color):
+def show_VTK(field_3d, threshold, color):
     verts, faces, normals, values = marching_cubes(
         field_3d,
         level=threshold
     )
+
+    Nx, Ny, Nz = field_3d.shape
 
     fig = go.Figure()
 
@@ -109,8 +111,10 @@ def show_VTK(field_3d, Nx, Ny, Nz, threshold, color):
     return fig
 
 
-def show_two_VTK(field1, field2, Nx, Ny, Nz, th1, th2, color1, color2):
+def show_two_VTK(field1, field2, th1, th2, color1, color2):
     fig = go.Figure()
+
+    Nx, Ny, Nz = field1.shape
 
     # --- field 1 ---
     verts1, faces1, _, _ = marching_cubes(field1, level=th1)

@@ -4,9 +4,15 @@ from libs.functions import calc_bulbes
 from libs.functions import calc_grains
 from libs.functions import calc_bubbles_in_grains
 from libs.functions import calc_bubbleRadius_on_dist_grainCenter
-from libs.functions import dictXlable
+from libs.functions import dictBinsBubbles
+from libs.functions import dictBinsGrains
+from libs.functions import dictBinsDists
 from libs.functions import make_zip_from_dict
 from libs.functions import fig_labels
+from libs.functions import getdata
+from libs.mkfigures import show_bulbes
+from libs.mkfigures import show_grains
+from libs.mkfigures import show_bubbles_in_grains
 from libs.mkfigures import make_figure_distribution_png
 from libs.mkfigures import make_figure_radius_on_distance_png
 
@@ -34,63 +40,247 @@ DEFAULT_STATE = {
     "results_bubbles": None,
     "results_grains": None,
     "results_bubbles_in_grains": None,
-    "vol_cm3": None,
     "num_of_grains_to_calc": 2,
     "num_of_bins_to_show": 10,
-    "num_of_grains": None
+    "num_of_grains": None,
+    "bub3d": None,
+    "gr3d": None,
+    "BubblesFileName": None,
+    "GrainsFileName": None,
+    "threshold_bubbles": None,
+    "threshold_grains": None
 }
+
 
 for key, value in DEFAULT_STATE.items():
     if key not in st.session_state:
         st.session_state[key] = value
 
+
 if "numbins" not in st.session_state:
-    st.session_state["numbins"] = {
-        name: st.session_state.bins for name in dictXlable
-    }
+    st.session_state["numbins"] = {}
+    st.session_state["numbins"].update(
+        {name: st.session_state.bins for name in dictBinsBubbles}
+    )
+    st.session_state["numbins"].update(
+        {name: st.session_state.bins for name in dictBinsGrains}
+    )
+    st.session_state["numbins"].update(
+        {name: st.session_state.bins for name in dictBinsDists}
+    )
+
+
+def reset_bubbles():
+    st.session_state.results_bubbles = None
+    st.session_state.bub3d = None
+    st.session_state.threshold_bubbles = None
+    st.session_state.bubfname = None
+    st.session_state.minv = None
+    st.session_state.maxv = None
+    st.session_state.BubblesFileName = None
+
+
+def reset_grains():
+    st.session_state.results_grains = None
+    st.session_state.gr3d = None
+    st.session_state.threshold_grains = None
+    st.session_state.grfname = None
+    st.session_state.minvg = None
+    st.session_state.maxvg = None
+    st.session_state.GrainsFileName = None
 
 
 @st.fragment
+def show_3D_bubbles():
+    fig = show_bulbes(st.session_state.threshold_bubbles)
+    st.plotly_chart(fig, use_container_width=True)
+
+
+@st.fragment
+def show_3D_grains():
+    fig = show_grains()
+    st.plotly_chart(fig, use_container_width=True)
+
+
+@st.fragment
+def show_3D_bubbles_in_grains():
+    fig = show_bubbles_in_grains()
+    st.plotly_chart(fig, use_container_width=True)
+
+
 def show_results_bubbles():
-    c13, c14 = st.columns(2)
-    res_bub = st.session_state["results_bubbles"]
-    with c13:
-        fig = res_bub["fig_bulbs"]
-        st.plotly_chart(fig, use_container_width=True)
-    with c14:
-        st.markdown(""" Bubbles statistics """)
-        table = res_bub["df_bulbs"]
-        st.dataframe(
-            table.style.format({"Value": "{:.1f}"}),
-            use_container_width=True
+    c11, c12 = st.columns(2)
+    with c11:
+        BubblesFileName = st.file_uploader(
+            "Download bubbles file",
+            type=["vtk"],
+            key="bubble_uploader",
+            on_change=reset_bubbles,
         )
+        threshold_bubbles = st.number_input("Threshold for Bubbles",
+                                            value=0.5,
+                                            min_value=0.05,
+                                            step=0.05,
+                                            max_value=1.0)
+        st.session_state.threshold_bubbles = threshold_bubbles
+        if BubblesFileName is not None:
+            st.session_state.BubblesFileName = BubblesFileName.name
+            if st.session_state.bub3d is None:
+                bub3d, bubfname = getdata(BubblesFileName)
+                minv = bub3d.min()
+                maxv = bub3d.max()
+                st.session_state.bub3d = bub3d
+                st.session_state.bubfname = bubfname
+                st.session_state.minv = minv
+                st.session_state.maxv = maxv
 
-
-@st.fragment
-def show_results_grains():
-    if st.session_state["results_grains"] is not None:
-        res_gr = st.session_state["results_grains"]
-        with c23:
-            fig = res_gr["fig_grains"]
-            st.plotly_chart(fig, use_container_width=True)
-        with c24:
-            st.markdown(""" Grains statistics """)
-            table = res_gr["df_grains"]
-            st.dataframe(
-                table.style.format({"Value": "{:.1f}"}),
-                use_container_width=True
+            st.success(
+                f"Minimal value: **{st.session_state.minv:.2f}**\n\n"
+                f"Maximal value: **{st.session_state.maxv:.2f}**"
             )
+            if threshold_bubbles > st.session_state.maxv:
+                st.warning(f"Threshold for bubbles is larger than maximal value\n\n"
+                           f"Choose threshold between {st.session_state.minv:.2f} "
+                           f"and {st.session_state.maxv:.2f} !!!")
+
+        if st.session_state.bub3d is not None:
+            if st.session_state.minv < threshold_bubbles < st.session_state.maxv:
+                start_bub = st.button("▶️ Start calculations", key="button_bub")
+                if start_bub:
+                    results_bubbles = calc_bulbes(st.session_state.bub3d, st.session_state.bubfname,
+                                                  st.session_state.threshold_bubbles,
+                                                  st.session_state.M, st.session_state.bins,
+                                                  st.session_state.scale, st.session_state.vol_cm3)
+                    st.session_state["results_bubbles"] = results_bubbles
+                if st.session_state["results_bubbles"] is not None:
+                    st.session_state["numbins"].update(
+                        {name: st.session_state.bins for name in dictBinsBubbles}
+                    )
+                    res_bub = st.session_state["results_bubbles"]
+                    st.markdown(""" Bubbles statistics """)
+                    table = res_bub["df_bulbs"]
+                    st.dataframe(
+                            table.style.format({"Value": "{:.1f}"}),
+                            use_container_width=True
+                        )
+
+    with c12:
+        if BubblesFileName is not None:
+            if st.session_state.threshold_bubbles < st.session_state.maxv:
+                show_3D_bubbles()
 
 
-@st.fragment
+
+def show_results_grains():
+    c11, c12 = st.columns(2)
+    with c11:
+        GrainsFileName = st.file_uploader(
+            "Download grains file",
+            type=["vtk"],
+            key="grain_uploader",
+            on_change=reset_grains,
+        )
+        threshold_grains = st.number_input("Threshold for Grains",
+                                            value=0.9,
+                                            min_value=0.05,
+                                            step=0.05,
+                                            max_value=1.0)
+        st.session_state.threshold_grains = threshold_grains
+        if GrainsFileName is not None:
+            st.session_state.GrainsFileName = GrainsFileName.name
+            if st.session_state.gr3d is None:
+                gr3d, grfname = getdata(GrainsFileName)
+                minvg = gr3d.min()
+                maxvg = gr3d.max()
+                st.session_state.gr3d = gr3d
+                st.session_state.grfname = grfname
+                st.session_state.minvg = minvg
+                st.session_state.maxvg = maxvg
+
+            st.success(
+                f"Minimal value: **{st.session_state.minvg:.2f}**\n\n"
+                f"Maximal value: **{st.session_state.maxvg:.2f}**"
+            )
+            if threshold_grains > st.session_state.maxvg:
+                st.warning(f"Threshold for grains is larger than maximal value\n\n"
+                           f"Choose threshold between {st.session_state.minvg:.2f} "
+                           f"and {st.session_state.maxvg:.2f} !!!")
+
+        if st.session_state.gr3d is not None:
+            if st.session_state.minvg < threshold_grains < st.session_state.maxvg:
+                start_gr = st.button("▶️ Start calculations", key="grain_bub")
+                if start_gr:
+                    results_grains = calc_grains(st.session_state.gr3d, st.session_state.grfname,
+                                                  st.session_state.threshold_grains,
+                                                  st.session_state.M, st.session_state.bins,
+                                                  st.session_state.scale, st.session_state.vol_cm3)
+                    st.session_state["results_grains"] = results_grains
+                    st.session_state["num_of_grains"] = results_grains["num_of_grains_for_calc"]
+                if st.session_state["results_grains"] is not None:
+                    st.session_state["numbins"].update(
+                        {name: st.session_state.bins for name in dictBinsGrains}
+                    )
+                    res_gr = st.session_state["results_grains"]
+                    st.markdown(""" Grains statistics """)
+                    table = res_gr["df_grains"]
+                    st.dataframe(
+                            table.style.format({"Value": "{:.1f}"}),
+                            use_container_width=True
+                        )
+
+    with c12:
+        if GrainsFileName is not None:
+            if st.session_state.threshold_grains < st.session_state.maxvg:
+                show_3D_grains()
+
+
 def show_results_bubbles_in_grains():
-    if st.session_state["results_bubbles_in_grains"] is not None:
-        res_bub_in_gr = st.session_state["results_bubbles_in_grains"]
-        with c34:
-            fig = res_bub_in_gr["fig_bulbsgrains"]
-            st.plotly_chart(fig, use_container_width=True)
-        with c35:
+    c31, c32 = st.columns(2)
+    with c31:
+        if st.session_state.BubblesFileName is not None:
+            st.success(f"**Bubbles file name:**\n\n {st.session_state.BubblesFileName}")
+        else:
+            st.warning("File with bubbles was not downloaded")
+        if st.session_state.results_bubbles is None:
+            st.warning("Calculations of bubbles are needed")
+    with c32:
+        if st.session_state.GrainsFileName is not None:
+            st.success(f"**Grains file name:**\n\n {st.session_state.GrainsFileName}")
+        else:
+            st.warning("File with grains was not downloaded")
+        if st.session_state.results_grains is None:
+            st.warning("Calculations of grains are needed")
+    c33, c34 = st.columns(2)
+    with c33:
+        if st.session_state.results_grains is not None and st.session_state.results_bubbles is not None:
+            start_bub_in_gr = st.button(
+                "▶️ Start calculations",
+                key="button_bubgr",
+                disabled=(
+                        st.session_state.get("results_grains") is None or
+                        st.session_state.get("results_bubbles") is None
+                )
+            )
+            if start_bub_in_gr:
+                if st.session_state["results_grains"] is not None and st.session_state["results_bubbles"] is not None:
+                    results_bubbles_in_grains = calc_bubbles_in_grains(
+                        st.session_state["results_grains"], st.session_state["results_bubbles"],
+                        st.session_state.threshold_grains, st.session_state.threshold_bubbles,
+                        st.session_state.M, st.session_state.bins,
+                        st.session_state.scale, st.session_state.vol_cm3)
+                    st.session_state["results_bubbles_in_grains"] = results_bubbles_in_grains
+
+    with c34:
+        if st.session_state.BubblesFileName is not None and st.session_state.GrainsFileName is not None:
+            show_3D_bubbles_in_grains()
+
+    with c33:
+        if st.session_state["results_bubbles_in_grains"] is not None:
+            st.session_state["numbins"].update(
+                {name: st.session_state.bins for name in dictBinsDists}
+            )
             st.markdown(""" Distances between bubbles and grains """)
+            res_bub_in_gr = st.session_state["results_bubbles_in_grains"]
             table = res_bub_in_gr["df_bubingrains"]
             st.dataframe(
                 table.style.format({"Value": "{:.1f}"}),
@@ -163,17 +353,15 @@ def show_distribution(results_name, fname, color):
     tab01h, tab02h = st.columns(2)
     with tab01h:
         new_bins = st.slider("Number of bins for distribution", 2, 2 * st.session_state.bins, curr_bins, key=f"nbins_{fname}")
-    with tab02h:
-        recalc = st.button(f"🔄 Recalculate distribution", key=f"recalc_{fname}")
 
-    if recalc:
-        if new_bins != curr_bins:
-            st.session_state.numbins[fname] = new_bins
-            data = distribs["data"]
-            distribs, datasets = calc_distribution_from_data(
-                data, fname, new_bins, type, area_cm3)
-            st.session_state[results_name]["dict"][fname] = distribs
-            st.session_state[results_name]["data"][fname] = datasets
+    if new_bins != curr_bins:
+        st.session_state.numbins[fname] = new_bins
+        data = distribs["data"]
+        distribs, datasets = calc_distribution_from_data(
+            data, fname, new_bins, type, area_cm3)
+        st.session_state[results_name]["dict"][fname] = distribs
+        st.session_state[results_name]["data"][fname] = datasets
+
 
     xlabel, ylabel = fig_labels(fname)
 
@@ -229,26 +417,27 @@ def show_meanBubSize_on_distGrainCenter(fname):
     curr_Ngrains = st.session_state.num_of_grains_to_calc
     Ngrains = st.session_state.num_of_grains
     curr_Nbins = st.session_state.num_of_bins_to_show
-    tab31bg, tab32bg, tab33bg = st.columns(3)
+    tab31bg, tab32bg = st.columns(2)
     with tab31bg:
         num_of_grains = st.slider("Number of grains for analysis", 1, Ngrains, curr_Ngrains, key=f"curr_Ngrains")
     with tab32bg:
         num_of_bins = st.slider("Number of bins for analysis", 2, 20, curr_Nbins, key=f"curr_Nbins")
-    with tab33bg:
-        start_dud_gr_dist = st.button(f"🔄 Start calculations", key=f"start_dud_gr_dist")
-
-    if start_dud_gr_dist:
-        if num_of_grains != curr_Ngrains:
-            st.session_state.num_of_grains_to_calc = num_of_grains
-        if num_of_bins != curr_Nbins:
-            st.session_state.num_of_bins_to_show = num_of_bins
-        grains = st.session_state["results_grains"]
-        bubbles = st.session_state["results_bubbles"]
-        results, datasets = calc_bubbleRadius_on_dist_grainCenter(
-            M, grains, bubbles, num_of_grains, num_of_bins, scale, fname)
-        st.session_state[fname]["dict"] = results
-        st.session_state[fname]["data"] = datasets
-
+    # with tab33bg:
+    #     start_dud_gr_dist = st.button(f"🔄 Start calculations", key=f"start_dud_gr_dist")
+########################################
+    # if start_dud_gr_dist:
+    if num_of_grains != curr_Ngrains:
+        st.session_state.num_of_grains_to_calc = num_of_grains
+    if num_of_bins != curr_Nbins:
+        st.session_state.num_of_bins_to_show = num_of_bins
+    grains = st.session_state["results_grains"]
+    bubbles = st.session_state["results_bubbles"]
+    results, datasets = calc_bubbleRadius_on_dist_grainCenter(
+        st.session_state.M, grains, bubbles, num_of_grains, num_of_bins,
+        st.session_state.scale, fname)
+    st.session_state[fname]["dict"] = results
+    st.session_state[fname]["data"] = datasets
+###########################
     res = st.session_state[fname]
     if res["dict"] is not None and res["data"] is not None:
         results = res["dict"]
@@ -283,17 +472,34 @@ def show_meanBubSize_on_distGrainCenter(fname):
 
 
 with st.sidebar:
+    st.image("figs/m3trex.png")
+    st.divider()
     st.header("Parameters")
     M = st.number_input("Size in grids", value=128, min_value=32, step=32)
     scale = st.number_input("Scale [nm]", value=10, min_value=1, step=1)
-    threshold_bubbles = st.number_input("Threshold for Bubbles", value=0.5, min_value=0.05, step=0.05, max_value=0.95)
-    threshold_grains = st.number_input("Threshold for gains", value=0.9, min_value=0.05, step=0.05, max_value=0.95)
-    nbins = st.session_state["bins"]
-    size_cm = M * scale * 1E-7
-    vol_cm3 = size_cm ** 3
-    st.session_state["vol_cm3"] = vol_cm3
+    st.divider()
 
-# start_dud_gr_dist = None
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.image("figs/logo.jpg")
+    with col2:
+        st.markdown(
+            '<a href="http://iap.sumy.org/viewdep/en/?id=36&schemeid=51" target="_blank">'
+            'M<sub>3</sub>TREC<sub>s</sub></a>',
+            unsafe_allow_html=True
+        )
+    with col3:
+        st.markdown(' © 2026')
+
+    if "M" not in st.session_state:
+        st.session_state.M = M
+    if "scale" not in st.session_state:
+        st.session_state.scale = scale
+    if "size_cm" not in st.session_state:
+        st.session_state.size_cm = M * scale * 1E-7
+    if "vol_cm3" not in st.session_state:
+        st.session_state.vol_cm3 = (M * scale * 1E-7) ** 3
+
 
 st.set_page_config(page_title="U3Si2 statistics", layout="wide", initial_sidebar_state="expanded")
 
@@ -311,14 +517,9 @@ top_tabs = st.tabs([
 ])
 
 with top_tabs[0]:
-    st.header(f"🫧 Bubbles statistics:")
-    c11, c12 = st.columns(2)
-    with c11:
-        BubblesFileName = st.file_uploader("Download bubbles file", type=["vtk"])
-    with c12:
-        start_bub = st.button("▶️ Start calculations", key="button_bub")
+    st.header(f"🫧 Gas bubbles:")
+    show_results_bubbles()
     if st.session_state["results_bubbles"] is not None:
-        show_results_bubbles()
         st.subheader(f"📈 Graphical results")
         tabs_bubbles = st.tabs([
             f"📊 **Normalized size-distribution**",
@@ -350,16 +551,11 @@ with top_tabs[0]:
             st.markdown("**Normalized distribution of nearest distances between edges of bubbles**")
             show_distribution("results_bubbles", "edge_dist_bubbles", "blue")
 
+
 with top_tabs[1]:
     st.header(f"🔷 Grain structure:")
-    c21, c22 = st.columns(2)
-    with c21:
-        GrainsFileName = st.file_uploader("Download grains file", type=["vtk"])
-    with c22:
-        start_gr = st.button("▶️ Start calculations", key="button_gr")
-    c23, c24 = st.columns(2)
+    show_results_grains()
     if st.session_state["results_grains"] is not None:
-        show_results_grains()
         st.subheader(f"📈 Graphical results")
         tabs_grains = st.tabs([
             f"📊 **Normalized size-distribution**",
@@ -384,31 +580,11 @@ with top_tabs[1]:
             )
             show_distribution("results_grains", "size_grains_mean_dens", "orange")
 
+
 with top_tabs[2]:
-    st.header(f"🧊 Bubbles in Grains:")
-    c31, c32, c33 = st.columns(3)
-    with c31:
-        if BubblesFileName:
-            st.success(f"**Bubbles file name:** {BubblesFileName.name}")
-        else:
-            st.warning("File with bubbles was not downloaded")
-    with c32:
-        if GrainsFileName:
-            st.success(f"**Grains file name:** {GrainsFileName.name}")
-        else:
-            st.warning("File with grains was not downloaded")
-    with c33:
-        start_bub_in_gr = st.button(
-            "▶️ Start calculations",
-            key="button_bubgr",
-            disabled=(
-                    st.session_state.get("results_grains") is None or
-                    st.session_state.get("results_bubbles") is None
-            )
-        )
-    c34, c35 = st.columns(2)
+    st.header(f"🧊 Bubbles inside Grains:")
+    show_results_bubbles_in_grains()
     if st.session_state["results_bubbles_in_grains"] is not None:
-        show_results_bubbles_in_grains()
         st.subheader(f"📈 Graphical results")
         tabs_bubbles_in_grains = st.tabs([
             f"📊 **Distance to Grain center**",
@@ -430,36 +606,6 @@ with top_tabs[2]:
         with tabs_bubbles_in_grains[2]:
             st.markdown("**Dependence of the mean size of bubbles on a distance between bubbles and grain center**")
             show_meanBubSize_on_distGrainCenter("bubRad_vs_distGrCentr")
-
-
-if start_bub:
-    if BubblesFileName:
-        results_bubbles = calc_bulbes(BubblesFileName, threshold_bubbles, M, nbins, scale, vol_cm3)
-        st.session_state["results_bubbles"] = results_bubbles
-        st.rerun()
-    else:
-        with c12:
-            st.warning("File was not downloaded")
-
-
-if start_gr:
-    if GrainsFileName:
-        results_grains = calc_grains(GrainsFileName, threshold_grains, M, nbins, scale, vol_cm3)
-        st.session_state["results_grains"] = results_grains
-        st.session_state["num_of_grains"] = results_grains["num_of_grains_for_calc"]
-        st.rerun()
-    else:
-        with c22:
-            st.warning("File was not downloaded")
-
-
-if start_bub_in_gr:
-    if st.session_state["results_grains"] is not None and st.session_state["results_bubbles"] is not None:
-        results_bubbles_in_grains = calc_bubbles_in_grains(
-            st.session_state["results_grains"], st.session_state["results_bubbles"],
-            threshold_grains, threshold_bubbles, M, nbins, scale, vol_cm3)
-        st.session_state["results_bubbles_in_grains"] = results_bubbles_in_grains
-        st.rerun()
 
 
 

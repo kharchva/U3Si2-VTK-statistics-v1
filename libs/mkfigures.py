@@ -2,10 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import streamlit as st
 import io
-import zipfile
-from scipy.optimize import curve_fit
-from scipy import stats
-from scipy.optimize import least_squares
+from libs.paraview import show_VTK
+from libs.paraview import show_surface_field
+from libs.paraview import show_two_VTK
 
 
 plt.rcParams.update({
@@ -15,6 +14,40 @@ plt.rcParams.update({
     'axes.titlesize': 16,
     'legend.fontsize': 12
 })
+
+
+# @st.cache_data(
+#     show_spinner=False,
+#     hash_funcs={np.ndarray: lambda x: x.tobytes()}
+# )
+def show_bulbes(thr):
+    figBulbs = show_VTK(st.session_state.bub3d, thr, "blue")
+    return figBulbs
+
+
+# @st.cache_data(
+#     show_spinner=False,
+#     hash_funcs={np.ndarray: lambda x: x.tobytes()}
+# )
+def show_grains():
+    figGrains = show_surface_field(st.session_state.gr3d)
+    return figGrains
+
+
+# @st.cache_data(
+#     show_spinner=False,
+#     hash_funcs={np.ndarray: lambda x: x.tobytes()}
+# )
+def show_bubbles_in_grains():
+    figBubGrains = show_two_VTK(
+                st.session_state.gr3d,
+                st.session_state.bub3d,
+                st.session_state.threshold_grains,
+                st.session_state.threshold_bubbles,
+                "orange",
+                "blue"
+            )
+    return figBubGrains
 
 
 @st.cache_data(

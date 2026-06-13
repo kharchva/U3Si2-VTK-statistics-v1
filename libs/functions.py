@@ -10,13 +10,25 @@ from libs.paraview import show_surface_field
 from libs.distributions import calc_distribution_from_data
 
 
-def calc_bulbes(BubblesFileName, threshold_bubbles, M, nbins, scale, vol_cm3):
-    Nx, Ny, Nz, bubbles3d, fnameBulbs = readdatafromVTK(BubblesFileName)
-    bubbles1d = bubbles3d.reshape(Nx * Ny * Nz)
-    figBulbs = show_VTK(bubbles3d, Nx, Ny, Nz, threshold_bubbles, "blue")
+def getdata(FileName):
+    _, _, _, field3d, fname = readdatafromVTK(FileName)
+    return field3d, fname
+
+
+# def show_bulbes(field3d, M, threshold):
+#     figBulbs = show_VTK(field3d, M, M, M, threshold, "blue")
+#     return figBulbs
+
+
+# def calc_bulbes(BubblesFileName, threshold_bubbles, M, nbins, scale, vol_cm3):
+def calc_bulbes(bubbles3d, fnameBulbs, threshold_bubbles, M, nbins, scale, vol_cm3):
+    bubbles1d = bubbles3d.reshape(M * M * M)
+    # figBulbs = show_VTK(bubbles3d, M, M, M, threshold_bubbles, "blue")
+
     resBulbs = cpp.calc_precipitate(bubbles1d, threshold_bubbles, M)
 
     data_size = np.array(resBulbs.list_radius) * scale
+
     fname_size = "size_bubbles_dist"
     dictBulbs_size_dist, dataBulbs_size_dist = calc_distribution_from_data(
         data_size, fname_size, nbins, "dist", vol_cm3)
@@ -78,7 +90,7 @@ def calc_bulbes(BubblesFileName, threshold_bubbles, M, nbins, scale, vol_cm3):
 
     results_bulbs = {
         "df_bulbs": dfBulbs_pivot,
-        "fig_bulbs": figBulbs,
+        # "fig_bulbs": figBulbs,
         "res_bulbs": resBulbs,
         "fname_bulbs": fnameBulbs,
         "res_bubbles3d": bubbles3d,
@@ -89,10 +101,14 @@ def calc_bulbes(BubblesFileName, threshold_bubbles, M, nbins, scale, vol_cm3):
     return results_bulbs
 
 
-def calc_grains(GrainsFileName, threshold_grains, M, nbins, scale, vol_cm3):
-    Nx, Ny, Nz, grains3d, fnameGrains = readdatafromVTK(GrainsFileName)
-    grains1d = grains3d.reshape(Nx * Ny * Nz)
-    figGrains = show_surface_field(grains3d)
+# def calc_grains(GrainsFileName, threshold_grains, M, nbins, scale, vol_cm3):
+#     Nx, Ny, Nz, grains3d, fnameGrains = readdatafromVTK(GrainsFileName)
+
+
+def calc_grains(grains3d, fnameGrains, threshold_grains, M, nbins, scale, vol_cm3):
+    grains1d = grains3d.reshape(M * M * M)
+    # figGrains = show_surface_field(grains3d)
+
     resGrains = cpp.calc_precipitate(grains1d, threshold_grains, M)
 
     data_size = np.array(resGrains.list_radius) * scale
@@ -144,7 +160,7 @@ def calc_grains(GrainsFileName, threshold_grains, M, nbins, scale, vol_cm3):
     results_grains = {
         "num_of_grains_for_calc": num_of_grains_for_calc,
         "df_grains": dfGrains_pivot,
-        "fig_grains": figGrains,
+        # "fig_grains": figGrains,
         "res_grains": resGrains,
         "fname_grains": fnameGrains,
         "res_grains1d":  grains1d,
@@ -160,17 +176,16 @@ def calc_bubbles_in_grains(res_gr, res_bub, thr_gr, thr_bub, M, nbins, scale, vo
     resGrains = res_gr["res_grains"]
     resBulbs = res_bub["res_bulbs"]
     grains1d = res_gr["res_grains1d"]
-    grains3d = res_gr["res_grains3d"]
-    bubbles3d = res_bub["res_bubbles3d"]
-    figBulbsGrains = show_two_VTK(
-        grains3d,
-        bubbles3d,
-        M, M, M,
-        thr_gr,
-        thr_bub,
-        "orange",
-        "blue"
-    )
+    # grains3d = res_gr["res_grains3d"]
+    # bubbles3d = res_bub["res_bubbles3d"]
+    # figBulbsGrains = show_two_VTK(
+    #     grains3d,
+    #     bubbles3d,
+    #     thr_gr,
+    #     thr_bub,
+    #     "orange",
+    #     "blue"
+    # )
     resBound = cpp.make_gb(grains1d, M, thr_gr)
     resBubGrDist = cpp.compute_bubble_grain_dist(M, resBulbs, resGrains, resBound)
 
@@ -225,7 +240,7 @@ def calc_bubbles_in_grains(res_gr, res_bub, thr_gr, thr_bub, M, nbins, scale, vo
 
     results_bubbles_in_grains = {
         "df_bubingrains": dfBubsGrains_pivot,
-        "fig_bulbsgrains": figBulbsGrains,
+        # "fig_bulbsgrains": figBulbsGrains,
         "res_dist_bulbs_grains": resBubGrDist,
         "dict": bubbles_in_grains_dict,
         "data": bubbles_in_grains_data
@@ -300,6 +315,31 @@ dictYlable = {
     "bub_edge_grain_bound_dist": "Normalized distribution"
 }
 
+
+dictBinsBubbles = {
+    "size_bubbles_dist": "Bubbles radius Rb [nm]",
+    "size_bubbles_dens": "Bubbles radius Rb [nm]",
+    "size_bubbles_mean_dist": "Bubbles radius Rb / ⟨Rb⟩",
+    "size_bubbles_mean_dens": "Bubbles radius Rb / ⟨Rb⟩",
+    "nn_dist_bubbles": "Nearest center-to-center distance between bubbles [nm]",
+    "edge_dist_bubbles": "Nearest edge-to-edge distance between bubbles [nm]",
+}
+
+
+dictBinsGrains = {
+    "size_grains_dist": "Normalized distribution",
+    "size_grains_dens": "Number density of grains [cm⁻³]",
+    "size_grains_mean_dist": "Normalized distribution",
+    "size_grains_mean_dens": "Number density of grains [cm⁻³]",
+}
+
+
+dictBinsDists = {
+    "bub_center_grain_center_dist": "Normalized distribution",
+    "bub_center_grain_bound_dist": "Normalized distribution",
+    "bub_edge_grain_center_dist": "Normalized distribution",
+    "bub_edge_grain_bound_dist": "Normalized distribution"
+}
 
 def fig_labels(fname):
     return dictXlable[fname], dictYlable[fname]
