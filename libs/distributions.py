@@ -63,7 +63,8 @@ def calc_distribution_from_data(data, fname, nbins, type, area_cm3):
     bin_width = bin_edges[1] - bin_edges[0]
     x = bin_centers
     # y = counts
-    x_ax = np.linspace(data.min(), data.max(), 200)
+    # x_ax = np.linspace(data.min(), data.max(), 200)
+    x_ax = np.linspace(0, data.max(), 200)
 
     if nbins > 2:
         try:
@@ -103,45 +104,49 @@ def calc_distribution_from_data(data, fname, nbins, type, area_cm3):
             r2_ln = 0
 
 ###################################################################
-        try:
-            p0 = [300.0, 1.0, max(x) * 1.1]  # початкові оцінки
-            params_MR, _ = curve_fit(MR_distrib,
-                                     x, y,
-                                     p0=p0,
-                                     bounds=(
-                    [0, -np.inf, max(x)],  # xc > max(x)
-                    [np.inf, np.inf, np.inf]
-                ),
-                maxfev=100000)
-            c0_fit, a_fit, xc_fit = params_MR
+        MR_fit_ok = False
+        y_MR_fit = np.zeros_like(x_ax)
+        r2_MR = 0
+        if fname == "size_bubbles_mean_dist" or fname == "size_grains_mean_dist":
+            try:
+                p0 = [300.0, 1.0, max(x) * 1.1]  # початкові оцінки
+                params_MR, _ = curve_fit(MR_distrib,
+                                         x, y,
+                                         p0=p0,
+                                         bounds=(
+                        [0, -np.inf, max(x)],  # xc > max(x)
+                        [np.inf, np.inf, np.inf]
+                    ),
+                    maxfev=100000)
+                c0_fit, a_fit, xc_fit = params_MR
 
-            # x0 = [
-            #     300.0,  # c0
-            #     1.0,  # a
-            #     max(x) * 1.5  # xc (ВАЖЛИВО: трохи правіше за дані)
-            # ]
-            #
-            # result = least_squares(
-            #     residuals,
-            #     x0,
-            #     args=(x, y),
-            #     max_nfev=20000
-            # )
-            #
-            # c0_fit, a_fit, xc_fit = result.x
+                # x0 = [
+                #     300.0,  # c0
+                #     1.0,  # a
+                #     max(x) * 1.5  # xc (ВАЖЛИВО: трохи правіше за дані)
+                # ]
+                #
+                # result = least_squares(
+                #     residuals,
+                #     x0,
+                #     args=(x, y),
+                #     max_nfev=20000
+                # )
+                #
+                # c0_fit, a_fit, xc_fit = result.x
 
-            y_MR_fit = MR_distrib(x, c0_fit, a_fit, xc_fit)
-            # --- R^2 для MR ---
-            ss_res_MR = np.sum((y - y_MR_fit) ** 2)
-            ss_tot = np.sum((y - np.mean(y)) ** 2)
-            r2_MR = 1 - ss_res_MR / ss_tot
-            y_MR_fit = MR_distrib(x_ax, c0_fit, a_fit, xc_fit)
-            MR_fit_ok = True
-        except RuntimeError:
-            # st.warning("Log-Normal fit не зійшовся.")
-            MR_fit_ok = False
-            y_MR_fit = np.zeros_like(x_ax)
-            r2_MR = 0
+                y_MR_fit = MR_distrib(x, c0_fit, a_fit, xc_fit)
+                # --- R^2 для MR ---
+                ss_res_MR = np.sum((y - y_MR_fit) ** 2)
+                ss_tot = np.sum((y - np.mean(y)) ** 2)
+                r2_MR = 1 - ss_res_MR / ss_tot
+                y_MR_fit = MR_distrib(x_ax, c0_fit, a_fit, xc_fit)
+                MR_fit_ok = True
+            except RuntimeError:
+                # st.warning("Log-Normal fit не зійшовся.")
+                MR_fit_ok = False
+                y_MR_fit = np.zeros_like(x_ax)
+                r2_MR = 0
 ###################################################################
 
     else:
@@ -156,18 +161,19 @@ def calc_distribution_from_data(data, fname, nbins, type, area_cm3):
         r2_MR = 0
 
 ###################################################################
+    x_axLSW = np.linspace(0, 1.499, 200)
     if fname == "size_bubbles_mean_dist" or fname == "size_grains_mean_dist":
-        y_LSW_fit = LSW_distrib(x)
-        # --- R^2 для LSW ---
-        ss_res_LSW = np.sum((y - y_LSW_fit) ** 2)
-        ss_tot = np.sum((y - np.mean(y)) ** 2)
-        r2_LSW = 1 - ss_res_LSW / ss_tot
-        y_LSW_fit = LSW_distrib(x_ax)
+        # y_LSW_fit = LSW_distrib(x)
+        # # --- R^2 для LSW ---
+        # ss_res_LSW = np.sum((y - y_LSW_fit) ** 2)
+        # ss_tot = np.sum((y - np.mean(y)) ** 2)
+        # r2_LSW = 1 - ss_res_LSW / ss_tot
+        y_LSW_fit = LSW_distrib(x_axLSW)
         LSW_fit_ok = True
     else:
         LSW_fit_ok = False
-        y_LSW_fit = np.zeros_like(x_ax)
-        r2_LSW = 0
+        y_LSW_fit = np.zeros_like(x_axLSW)
+        # r2_LSW = 0
 
 ###################################################################
 
@@ -175,10 +181,13 @@ def calc_distribution_from_data(data, fname, nbins, type, area_cm3):
         f"data_{fname}.txt": [(i, val) for i, val in enumerate(data)],
         f"histogram_{fname}.txt": list(zip(x, y)),
         f"gaussian_fit_{fname}.txt": list(zip(x_ax, y_gauss_fit)),
-        f"lognormal_fit_{fname}.txt": list(zip(x_ax, y_ln_fit)),
-        f"MR_fit_{fname}.txt": list(zip(x_ax, y_MR_fit)),
-        f"LSW_distribution_{fname}.txt": list(zip(x_ax, y_LSW_fit)),
+        f"lognormal_fit_{fname}.txt": list(zip(x_ax, y_ln_fit))
+        # f"MR_fit_{fname}.txt": list(zip(x_ax, y_MR_fit)),
+        # f"LSW_distribution_{fname}.txt": list(zip(x_ax, y_LSW_fit)),
     }
+    if fname == "size_bubbles_mean_dist" or fname == "size_grains_mean_dist":
+        datasets[f"MR_fit_{fname}.txt"] = list(zip(x_ax, y_MR_fit))
+        datasets[f"LSW_distribution_{fname}.txt"] = list(zip(x_axLSW, y_LSW_fit))
 
     dict4return = {
         "x": x,
@@ -195,7 +204,7 @@ def calc_distribution_from_data(data, fname, nbins, type, area_cm3):
         "r2_MR": r2_MR,
         "LSW_fit_ok": LSW_fit_ok,
         "y_LSW_fit": y_LSW_fit,
-        "r2_LSW": r2_LSW,
+        # "r2_LSW": r2_LSW,
         "bin_width": bin_width,
         # "datasets": datasets,
         "mean": data.mean(),

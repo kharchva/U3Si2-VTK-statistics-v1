@@ -2,9 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import streamlit as st
 import io
-from libs.paraview import show_VTK
-from libs.paraview import show_surface_field
-from libs.paraview import show_two_VTK
 
 
 plt.rcParams.update({
@@ -16,38 +13,50 @@ plt.rcParams.update({
 })
 
 
-# @st.cache_data(
-#     show_spinner=False,
-#     hash_funcs={np.ndarray: lambda x: x.tobytes()}
-# )
-def show_bulbes(thr):
-    figBulbs = show_VTK(st.session_state.bub3d, thr, "blue")
-    return figBulbs
+# def show_surface(field):
+#     return show_surface_field(field)
+#
+#
+# def show_clip(field, thr, color):
+#     return show_VTK(field, thr, color)
+#
+#
+# def show_two_clips(field1, field2, thr1, thr2, color1, color2):
+#     return show_two_VTK(field1, field2, thr1, thr2, color1, color2)
 
 
-# @st.cache_data(
-#     show_spinner=False,
-#     hash_funcs={np.ndarray: lambda x: x.tobytes()}
-# )
-def show_grains():
-    figGrains = show_surface_field(st.session_state.gr3d)
-    return figGrains
-
-
-# @st.cache_data(
-#     show_spinner=False,
-#     hash_funcs={np.ndarray: lambda x: x.tobytes()}
-# )
-def show_bubbles_in_grains():
-    figBubGrains = show_two_VTK(
-                st.session_state.gr3d,
-                st.session_state.bub3d,
-                st.session_state.threshold_grains,
-                st.session_state.threshold_bubbles,
-                "orange",
-                "blue"
-            )
-    return figBubGrains
+# # @st.cache_data(
+# #     show_spinner=False,
+# #     hash_funcs={np.ndarray: lambda x: x.tobytes()}
+# # )
+# def show_bulbes(thr):
+#     figBulbs = show_VTK(st.session_state.bub3d, thr, "blue")
+#     return figBulbs
+#
+#
+# # @st.cache_data(
+# #     show_spinner=False,
+# #     hash_funcs={np.ndarray: lambda x: x.tobytes()}
+# # )
+# def show_grains():
+#     figGrains = show_surface_field(st.session_state.gr3d)
+#     return figGrains
+#
+#
+# # @st.cache_data(
+# #     show_spinner=False,
+# #     hash_funcs={np.ndarray: lambda x: x.tobytes()}
+# # )
+# def show_bubbles_in_grains():
+#     figBubGrains = show_two_VTK(
+#                 st.session_state.gr3d,
+#                 st.session_state.bub3d,
+#                 st.session_state.threshold_grains,
+#                 st.session_state.threshold_bubbles,
+#                 "orange",
+#                 "blue"
+#             )
+#     return figBubGrains
 
 
 @st.cache_data(
@@ -98,7 +107,7 @@ def make_figure_distribution_png(dict_with_data, colorbins, xlabel, ylabel,
 
     LSW_fit_ok = dict_with_data["LSW_fit_ok"]
     y_LSW = dict_with_data["y_LSW_fit"]
-    r2LSW = dict_with_data["r2_LSW"]
+    # r2LSW = dict_with_data["r2_LSW"]
 
     bin_width = dict_with_data["bin_width"]
 
@@ -134,7 +143,29 @@ def make_figure_distribution_png(dict_with_data, colorbins, xlabel, ylabel,
     return buf.getvalue()
 
 
+@st.cache_data(
+    show_spinner=False,
+    hash_funcs={np.ndarray: lambda x: x.tobytes()}
+)
+def make_time_dependence_png(text, data, n_cols, curves, log_x, log_y, colors):
+    fig_fit, ax_fit = plt.subplots(figsize=(10, 5))
+    ax_fit.set_xlabel(f"{text[0][0]} {text[1][0]}")
+    ylabel = ""
+    for i in range (n_cols - 1):
+        if curves[i]:
+            ylabel += f", {text[0][i+1]}"
+            ax_fit.plot(data[0], data[i+1], color=colors[i], lw=2, label=f"{text[0][i+1]} {text[1][i+1]}")
+    ylabel = ylabel.lstrip(", ")
+    ax_fit.set_ylabel(ylabel)
+    if log_x:
+        ax_fit.set_xscale("log")  # логарифмічна шкала по X
+    if log_y:
+        ax_fit.set_yscale("log")  # логарифмічна шкала по
+    lines, labels = ax_fit.get_legend_handles_labels()
+    ax_fit.legend(lines[::-1], labels[::-1])
 
-
-
-
+    fig_fit.tight_layout()
+    buf = io.BytesIO()
+    fig_fit.savefig(buf, format="png")
+    plt.close(fig_fit)
+    return buf.getvalue()

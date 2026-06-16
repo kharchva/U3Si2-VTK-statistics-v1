@@ -10,6 +10,42 @@ from libs.paraview import show_surface_field
 from libs.distributions import calc_distribution_from_data
 
 
+def parse_tab_file(fname):
+
+    import tempfile
+    with tempfile.NamedTemporaryFile(delete=False,
+                                     suffix=".vtk") as tmp:
+        tmp.write(fname.getbuffer())
+        path = tmp.name
+
+
+    text_rows = []       # сюди підуть перші рядки з текстом
+    data_columns = []    # список списків для числових даних
+    num_columns = 0
+
+    with open(path, "r") as f:
+        for line in f:
+            # розбиваємо рядок по табуляції
+            parts = line.strip().split("\t")
+
+            # пробуємо перетворити всі елементи у float
+            try:
+                values = [float(p) for p in parts]
+                # якщо це перший числовий рядок — ініціалізуємо колонки
+                if not data_columns:
+                    num_columns = len(values)
+                    data_columns = [[] for _ in values]
+                # додаємо значення у відповідні колонки
+                for i, v in enumerate(values):
+                    data_columns[i].append(v)
+            except ValueError:
+                # якщо не всі елементи можна перетворити у float — це текстовий рядок
+                text_rows.append(parts)
+
+    return text_rows, data_columns, num_columns
+
+
+
 def getdata(FileName):
     _, _, _, field3d, fname = readdatafromVTK(FileName)
     return field3d, fname

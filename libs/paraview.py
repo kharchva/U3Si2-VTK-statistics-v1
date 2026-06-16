@@ -111,7 +111,7 @@ def show_VTK(field_3d, threshold, color):
     return fig
 
 
-def show_two_VTK(field1, field2, th1, th2, color1, color2):
+def show_two_VTK(field1, field2, th1, th2, color1, color2, opacity1=1.0, opacity2=1.0):
     fig = go.Figure()
 
     Nx, Ny, Nz = field1.shape
@@ -127,7 +127,7 @@ def show_two_VTK(field1, field2, th1, th2, color1, color2):
         j=faces1[:, 1],
         k=faces1[:, 2],
         color=color1,
-        opacity=1.0,
+        opacity=opacity1,
         name="field1"
     ))
 
@@ -142,7 +142,7 @@ def show_two_VTK(field1, field2, th1, th2, color1, color2):
         j=faces2[:, 1],
         k=faces2[:, 2],
         color=color2,
-        opacity=1.0,
+        opacity=opacity2,
         name="field2"
     ))
 
@@ -162,8 +162,70 @@ def show_two_VTK(field1, field2, th1, th2, color1, color2):
     return fig
 
 
-import numpy as np
-import plotly.graph_objects as go
+def show_three_VTK(field1, field2, field3, th1, th2, th3, color1, color2, color3, opacity1=1.0, opacity2=1.0, opacity3=1.0):
+    fig = go.Figure()
+
+    Nx, Ny, Nz = field1.shape
+
+    # --- field 1 ---
+    verts1, faces1, _, _ = marching_cubes(field1, level=th1)
+
+    fig.add_trace(go.Mesh3d(
+        x=verts1[:, 0],
+        y=verts1[:, 1],
+        z=verts1[:, 2],
+        i=faces1[:, 0],
+        j=faces1[:, 1],
+        k=faces1[:, 2],
+        color=color1,
+        opacity=opacity1,
+        name="field1"
+    ))
+
+    # --- field 2 ---
+    verts2, faces2, _, _ = marching_cubes(field2, level=th2)
+
+    fig.add_trace(go.Mesh3d(
+        x=verts2[:, 0],
+        y=verts2[:, 1],
+        z=verts2[:, 2],
+        i=faces2[:, 0],
+        j=faces2[:, 1],
+        k=faces2[:, 2],
+        color=color2,
+        opacity=opacity2,
+        name="field2"
+    ))
+
+    # --- field 3 ---
+    verts3, faces3, _, _ = marching_cubes(field3, level=th3)
+
+    fig.add_trace(go.Mesh3d(
+        x=verts3[:, 0],
+        y=verts3[:, 1],
+        z=verts3[:, 2],
+        i=faces3[:, 0],
+        j=faces3[:, 1],
+        k=faces3[:, 2],
+        color=color3,
+        opacity=opacity3,
+        name="field3"
+    ))
+
+    # cube frame
+    fig = add_cube_edges(fig, Nx, Ny, Nz)
+
+    fig.update_layout(
+        scene=dict(
+            xaxis=dict(visible=False),
+            yaxis=dict(visible=False),
+            zaxis=dict(visible=False),
+            aspectmode="cube",
+        ),
+        margin=dict(l=0, r=0, b=0, t=0),
+    )
+
+    return fig
 
 
 def show_surface_field(field_3d, colorscale="RdBu_r"):
