@@ -62,6 +62,16 @@ for key, value in DEFAULT_STATE.items():
         st.session_state[key] = value
 
 
+if "M" not in st.session_state:
+    st.session_state.M = None
+if "scale" not in st.session_state:
+    st.session_state.scale = None
+if "size_cm" not in st.session_state:
+    st.session_state.size_cm = None
+if "vol_cm3" not in st.session_state:
+    st.session_state.vol_cm3 = None
+
+
 if "numbins" not in st.session_state:
     st.session_state["numbins"] = {}
     st.session_state["numbins"].update(
@@ -81,6 +91,12 @@ with st.sidebar:
     st.header("Parameters")
     M = st.number_input("Size in grids", value=128, min_value=32, step=32)
     scale = st.number_input("Scale [nm]", value=10, min_value=1, step=1)
+
+    st.session_state.M = M
+    st.session_state.scale = scale
+    st.session_state.size_cm = M * scale * 1E-7
+    st.session_state.vol_cm3 = (M * scale * 1E-7) ** 3
+
     st.divider()
 
     col1, col2, col3 = st.columns(3)
@@ -94,16 +110,6 @@ with st.sidebar:
         )
     with col3:
         st.markdown(' © 2026')
-
-    if "M" not in st.session_state:
-        st.session_state.M = M
-    if "scale" not in st.session_state:
-        st.session_state.scale = scale
-    if "size_cm" not in st.session_state:
-        st.session_state.size_cm = M * scale * 1E-7
-    if "vol_cm3" not in st.session_state:
-        st.session_state.vol_cm3 = (M * scale * 1E-7) ** 3
-
 
 st.set_page_config(page_title="U3Si2 statistics", layout="wide", initial_sidebar_state="expanded")
 
