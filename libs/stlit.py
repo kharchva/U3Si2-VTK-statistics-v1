@@ -1,6 +1,7 @@
 import streamlit as st
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+import numpy as np
 
 from libs.distributions import calc_distribution_from_data
 
@@ -80,6 +81,9 @@ def show_surface(field):
 
 @st.fragment
 def show_clip(field, thr, color):
+    # Nx, Ny, Nz = field.shape
+    # if Nz < 2:
+    #     field = np.repeat(field, 2, axis=2)   # тепер форма (Nx, Ny, 2)
     fig = show_VTK(field, thr, color)
     st.plotly_chart(fig, width="stretch")
 
@@ -138,13 +142,43 @@ def show_results_bubbles():
                 color = mcolors.to_hex(color)
                 show_clip(st.session_state.bub3d, threshold_bubbles, color)
             with c15:
+                # start_bub = st.button("▶️ Start calculations", key="button_bub")
+
+                set_min_num_cells_bubbles = st.checkbox("Ignore small bubbles", value=False, key="small_bubbles")
+                if set_min_num_cells_bubbles:
+                    min_num_cells_bubbles = st.number_input(
+                        "Minimal number of cells",
+                        value=1,
+                        min_value=1,
+                        step=1,
+                        max_value=st.session_state.M**3,
+                        key="min_num_cells_bubbles"
+                    )
+                else:
+                    min_num_cells_bubbles = 1
+                set_max_num_cells_bubbles = st.checkbox("Ignore large bubbles", value=False, key="large_bubbles")
+                if set_max_num_cells_bubbles:
+                    max_num_cells_bubbles = st.number_input(
+                        "Maximal number of cells",
+                        value=st.session_state.M,
+                        min_value=1,
+                        step=1,
+                        max_value=st.session_state.M**3,
+                        key="max_num_cells_bubbles"
+                    )
+                else:
+                    max_num_cells_bubbles = st.session_state.M**3
                 start_bub = st.button("▶️ Start calculations", key="button_bub")
                 if start_bub:
-                    results_bubbles = calc_bulbes(st.session_state.bub3d, st.session_state.bubfname,
-                                                  st.session_state.threshold_bubbles,
-                                                  st.session_state.M, st.session_state.bins,
-                                                  st.session_state.scale, st.session_state.vol_cm3)
-                    st.session_state["results_bubbles"] = results_bubbles
+                    if max_num_cells_bubbles < min_num_cells_bubbles:
+                        st.error("Maximal number of cells should be more than minimal number of cells !!!")
+                    else:
+                        results_bubbles = calc_bulbes(st.session_state.bub3d, st.session_state.bubfname,
+                                                      st.session_state.threshold_bubbles,
+                                                      st.session_state.M, st.session_state.bins,
+                                                      st.session_state.scale, st.session_state.vol_cm3,
+                                                      min_num_cells_bubbles, max_num_cells_bubbles)
+                        st.session_state["results_bubbles"] = results_bubbles
                 if st.session_state["results_bubbles"] is not None:
                     st.session_state["numbins"].update(
                         {name: st.session_state.bins for name in dictBinsBubbles}
@@ -153,10 +187,16 @@ def show_results_bubbles():
                     with c16:
                         st.markdown(""" Bubbles statistics """)
                         table = res_bub["df_bulbs"]
+                    #     st.dataframe(
+                    #             table.style.format({"Value": "{:.1f}"}),
+                    #             width="stretch"
+                    # )
                         st.dataframe(
-                                table.style.format({"Value": "{:.1f}"}),
-                                width="stretch"
-                    )
+                            table.style.format({
+                                "Value": lambda x: f"{int(x)}" if isinstance(x, int) or x.is_integer() else f"{x:.1f}"
+                            }),
+                            width="stretch"
+                        )
 
 
 def show_results_grains():
@@ -208,14 +248,43 @@ def show_results_grains():
                 # show_clip(st.session_state.gr3d, threshold_grains, "orange")
                 show_clip(st.session_state.gr3d, threshold_grains, color)
             with c25:
+                set_min_num_cells_grains = st.checkbox("Ignore small grains", value=False, key="small_grains")
+                if set_min_num_cells_grains:
+                    min_num_cells_grains = st.number_input(
+                        "Minimal number of cells",
+                        value=1,
+                        min_value=1,
+                        step=1,
+                        max_value=st.session_state.M**3,
+                        key="min_num_cells_grains"
+                    )
+                else:
+                    min_num_cells_grains = 1
+                set_max_num_cells_grains = st.checkbox("Ignore large grains", value=False, key="large_grains")
+                if set_max_num_cells_grains:
+                    max_num_cells_grains = st.number_input(
+                        "Maximal number of cells",
+                        value=st.session_state.M,
+                        min_value=1,
+                        step=1,
+                        max_value=st.session_state.M**3,
+                        key="max_num_cells_grains"
+                    )
+                else:
+                    max_num_cells_grains = st.session_state.M**3
+
                 start_gr = st.button("▶️ Start calculations", key="button_gr")
                 if start_gr:
-                    results_grains = calc_grains(st.session_state.gr3d, st.session_state.grfname,
-                                                  st.session_state.threshold_grains,
-                                                  st.session_state.M, st.session_state.bins,
-                                                  st.session_state.scale, st.session_state.vol_cm3)
-                    st.session_state["results_grains"] = results_grains
-                    st.session_state["num_of_grains"] = results_grains["num_of_grains_for_calc"]
+                    if max_num_cells_grains < min_num_cells_grains:
+                        st.error("Maximal number of cells should be more than minimal number of cells !!!")
+                    else:
+                        results_grains = calc_grains(st.session_state.gr3d, st.session_state.grfname,
+                                                      st.session_state.threshold_grains,
+                                                      st.session_state.M, st.session_state.bins,
+                                                      st.session_state.scale, st.session_state.vol_cm3,
+                                                     min_num_cells_grains, max_num_cells_grains)
+                        st.session_state["results_grains"] = results_grains
+                        st.session_state["num_of_grains"] = results_grains["num_of_grains_for_calc"]
                 if st.session_state["results_grains"] is not None:
                     st.session_state["numbins"].update(
                         {name: st.session_state.bins for name in dictBinsGrains}
@@ -224,8 +293,14 @@ def show_results_grains():
                     with c26:
                         st.markdown(""" Grains statistics """)
                         table = res_gr["df_grains"]
+                        # st.dataframe(
+                        #     table.style.format({"Value": "{:.1f}"}),
+                        #     width="stretch"
+                        # )
                         st.dataframe(
-                            table.style.format({"Value": "{:.1f}"}),
+                            table.style.format({
+                                "Value": lambda x: f"{int(x)}" if isinstance(x, int) or x.is_integer() else f"{x:.1f}"
+                            }),
                             width="stretch"
                         )
 

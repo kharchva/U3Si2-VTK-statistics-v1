@@ -45,9 +45,15 @@ def parse_tab_file(fname):
     return text_rows, data_columns, num_columns
 
 
-
 def getdata(FileName):
-    _, _, _, field3d, fname = readdatafromVTK(FileName)
+    Nx, Ny, Nz, field3d, fname = readdatafromVTK(FileName)
+    # print(Nx, Ny, Nz)
+    # print(field3d)
+    # if Nz < 2:
+    #     field3d = np.repeat(field3d[:, :, np.newaxis], 2, axis=2)
+        # field3d = field3d[:, :, np.newaxis]
+    # print(field3d.shape)
+
     return field3d, fname
 
 
@@ -57,11 +63,12 @@ def getdata(FileName):
 
 
 # def calc_bulbes(BubblesFileName, threshold_bubbles, M, nbins, scale, vol_cm3):
-def calc_bulbes(bubbles3d, fnameBulbs, threshold_bubbles, M, nbins, scale, vol_cm3):
+def calc_bulbes(bubbles3d, fnameBulbs, threshold_bubbles, M, nbins, scale, vol_cm3, min_n, max_n):
     bubbles1d = bubbles3d.reshape(M * M * M)
     # figBulbs = show_VTK(bubbles3d, M, M, M, threshold_bubbles, "blue")
 
-    resBulbs = cpp.calc_precipitate(bubbles1d, threshold_bubbles, M)
+    resBulbs = cpp.calc_precipitate(bubbles1d, threshold_bubbles, M, min_n, max_n)
+    # resBulbs = cpp.calc_precipitate(bubbles1d, threshold_bubbles, M)
 
     data_size = np.array(resBulbs.list_radius) * scale
 
@@ -113,14 +120,15 @@ def calc_bulbes(bubbles3d, fnameBulbs, threshold_bubbles, M, nbins, scale, vol_c
     }
 
     dfBulbs = pd.DataFrame({
-        "Parameter": ["Mean radius", "Number density", "Center-to-center distance", "Edge-to-edge distance"],
+        "Parameter": ["Mean radius", "Number", "Number density", "Center-to-center distance", "Edge-to-edge distance"],
         "Value": [
             resBulbs.Rp * scale,
+            resBulbs.count,
             resBulbs.count / vol_cm3 * 1E-14,
             resDists.mean_nnd * scale,
             resDists.mean_edd * scale
         ],
-        "Dimension": ["[nm]", "[cm⁻³] (×10¹⁴)", "[nm]", "[nm]"]
+        "Dimension": ["[nm]", "[count]", "[cm⁻³] (×10¹⁴)", "[nm]", "[nm]"]
     })
     dfBulbs_pivot = dfBulbs.set_index("Parameter")
 
@@ -141,11 +149,11 @@ def calc_bulbes(bubbles3d, fnameBulbs, threshold_bubbles, M, nbins, scale, vol_c
 #     Nx, Ny, Nz, grains3d, fnameGrains = readdatafromVTK(GrainsFileName)
 
 
-def calc_grains(grains3d, fnameGrains, threshold_grains, M, nbins, scale, vol_cm3):
+def calc_grains(grains3d, fnameGrains, threshold_grains, M, nbins, scale, vol_cm3, min_n, max_n):
     grains1d = grains3d.reshape(M * M * M)
     # figGrains = show_surface_field(grains3d)
 
-    resGrains = cpp.calc_precipitate(grains1d, threshold_grains, M)
+    resGrains = cpp.calc_precipitate(grains1d, threshold_grains, M, min_n, max_n)
 
     data_size = np.array(resGrains.list_radius) * scale
 
@@ -182,12 +190,13 @@ def calc_grains(grains3d, fnameGrains, threshold_grains, M, nbins, scale, vol_cm
     }
 
     dfGrains = pd.DataFrame({
-        "Parameter": ["Mean size", "Number density"],
+        "Parameter": ["Mean size", "Number", "Number density"],
         "Value": [
             resGrains.Rp * scale,
+            resGrains.count,
             resGrains.count / vol_cm3 * 1E-12
         ],
-        "Dimension": ["[nm]", "[cm⁻³] (×10¹²)"]
+        "Dimension": ["[nm]", "[count]", "[cm⁻³] (×10¹²)"]
     })
     dfGrains_pivot = dfGrains.set_index("Parameter")
 
