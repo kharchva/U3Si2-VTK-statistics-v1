@@ -323,7 +323,7 @@ if st.session_state.set_par:
             show_results_vac_in_bubbles()
 
 else:
-    st.image("figs/titul2.png", width='stretch')
+    st.image("figs/titul2.jpg", width='stretch')
 
 
 
