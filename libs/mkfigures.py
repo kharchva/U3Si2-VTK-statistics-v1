@@ -147,6 +147,35 @@ def make_figure_distribution_png(dict_with_data, colorbins, xlabel, ylabel,
     show_spinner=False,
     hash_funcs={np.ndarray: lambda x: x.tobytes()}
 )
+def make_figure_dependencies_on_distance_png(dict_with_data, colorbins, xlabel, ylabel, show_mean, mean):
+    x = dict_with_data["x"]
+    y = dict_with_data["y"]
+
+    bin_width = dict_with_data["bin_width"]
+
+    fig_fit, ax_fit = plt.subplots(figsize=(10, 5))
+    ax_fit.bar(x, y, width=bin_width * 0.8, color=colorbins, edgecolor='black', alpha=0.5, label="Data")
+    if show_mean:
+        ax_fit.axvline(mean, color='black', linestyle='--', linewidth=2)
+    ax_fit.set_xlabel(xlabel)
+    ax_fit.set_ylabel(ylabel)
+    lines, labels = ax_fit.get_legend_handles_labels()
+    ax_fit.legend(lines[::-1], labels[::-1])
+
+    xmin, xmax = ax_fit.get_xlim()
+    ax_fit.set_xlim(xmin, xmax)
+
+    fig_fit.tight_layout()
+    buf = io.BytesIO()
+    fig_fit.savefig(buf, format="png")
+    plt.close(fig_fit)
+    return buf.getvalue()
+
+
+@st.cache_data(
+    show_spinner=False,
+    hash_funcs={np.ndarray: lambda x: x.tobytes()}
+)
 def make_time_dependence_png(text, data, n_cols, curves, log_x, log_y, colors):
     fig_fit, ax_fit = plt.subplots(figsize=(10, 5))
     ax_fit.set_xlabel(f"{text[0][0]} {text[1][0]}")

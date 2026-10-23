@@ -4,6 +4,7 @@ import matplotlib.colors as mcolors
 import numpy as np
 
 from libs.distributions import calc_distribution_from_data
+from libs.distributions import calc_dependencies_on_distance
 
 from libs.functions import calc_bulbes
 from libs.functions import calc_grains
@@ -22,6 +23,7 @@ from libs.functions import parse_tab_file
 # from libs.mkfigures import show_bubbles_in_grains
 
 from libs.mkfigures import make_figure_distribution_png
+from libs.mkfigures import make_figure_dependencies_on_distance_png
 from libs.mkfigures import make_figure_radius_on_distance_png
 from libs.mkfigures import make_time_dependence_png
 
@@ -354,6 +356,10 @@ def show_results_bubbles_in_grains():
 
     with c33:
         if st.session_state["results_bubbles_in_grains"] is not None:
+            st.session_state["dmax"] = (
+                st.session_state["results_bubbles_in_grains"]["dmax"]
+            )
+
             st.session_state["numbins"].update(
                 {name: st.session_state.bins for name in dictBinsDists}
             )
@@ -596,7 +602,6 @@ def show_distribution(results_name, fname, color):
         st.session_state[results_name]["dict"][fname] = distribs
         st.session_state[results_name]["data"][fname] = datasets
 
-
     xlabel, ylabel = fig_labels(fname)
 
     fig = make_figure_distribution_png(
@@ -614,6 +619,95 @@ def show_distribution(results_name, fname, color):
     if fname == "size_bubbles_mean_dist" or fname == "size_grains_mean_dist":
         if not MR_ok or r2MR < 0:
             st.warning("MR fit was not found")
+
+    fig_fname = f"fig_{fname}.png"
+    zip_fname = f"{fname}_analysis.zip"
+    st.session_state[f"zip_{fname}_ready"] = False
+    zip_data = None
+
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button(
+            f"📦 Make ZIP arxiv with data",
+            key=f"mk_zip_{fname}"
+        ):
+            zip_data = make_zip_from_dict(datasets, fig, fig_fname)
+            st.session_state[f"zip_{fname}"] = zip_data
+            st.session_state[f"zip_{fname}_ready"] = True
+
+    with col2:
+        if st.session_state.get(f"zip_{fname}_ready", False):
+            st.download_button(
+                label=f"💾 Download data in ZIP format",
+                data=st.session_state[f"zip_{fname}"],
+                file_name=zip_fname,
+                mime="application/zip"
+            )
+
+
+@st.fragment
+def show_dependence_on_distance(fname, color):
+    results_name = "results_bubbles_in_grains"
+    res = st.session_state[results_name]
+    all_distribs = res["dict"]
+    all_datasets = res["data"]
+    distribs = all_distribs[fname]
+    datasets = all_datasets[fname]
+    mean_val = distribs["mean"]
+    data_type = distribs["type"]
+    vol_cm3 = st.session_state["vol_cm3"]
+
+    curr_bins = st.session_state.numbins[fname]
+    curr_dmin = st.session_state.dmin[fname]
+    curr_dmax = st.session_state.dmax[fname]
+
+    new_dmin = curr_dmin
+    new_dmax = curr_dmax
+
+    tab01h, tab02h = st.columns(2)
+    with tab01h:
+        show_mean = st.checkbox(
+            "Show mean value",
+            key=f"show_mean_{fname}"
+        )
+        new_bins = st.slider("Number of bins for distribution", 2, 2 * st.session_state.bins, curr_bins, key=f"nbins_{fname}")
+
+    with tab02h:
+        tab021h, tab022h = st.columns(2)
+        with tab021h:
+            set_dmin = st.checkbox(
+                "Set minimal distance",
+                key=f"set_min_dist_{fname}"
+            )
+            if set_dmin:
+                new_dmin = st.number_input("Minimal distance [nm]", value=curr_dmin, min_value=0, step=1, key=f"dmin_{fname}")
+        with tab022h:
+            set_dmax = st.checkbox(
+                "Set maximal distance",
+                key=f"set_max_dist_{fname}"
+            )
+            if set_dmax:
+                new_dmax = st.number_input("Maximal distance [nm]", value=curr_dmax, min_value=0, step=1, key=f"dmax_{fname}")
+        # recalc = st.button("♻️ Recalculate", key=f"recalc_dist{fname}")
+    if new_dmax <= new_dmin:
+        with tab022h:
+            st.warning("Minimal distance should be less than maximal")
+    else:
+        if new_bins != curr_bins or new_dmin != curr_dmin or new_dmax != curr_dmax:
+            st.session_state.numbins[fname] = new_bins
+            st.session_state.dmin[fname] = new_dmin
+            st.session_state.dmax[fname] = new_dmax
+            data = distribs["data"]
+            distribs, datasets = calc_dependencies_on_distance(data, fname, new_bins, new_dmin, new_dmax, vol_cm3, data_type)
+            st.session_state[results_name]["dict"][fname] = distribs
+            st.session_state[results_name]["data"][fname] = datasets
+
+    xlabel, ylabel = fig_labels(fname)
+
+    fig = make_figure_dependencies_on_distance_png(distribs, color, xlabel, ylabel, show_mean, mean_val)
+
+    st.image(fig, width="stretch")
+
 
     fig_fname = f"fig_{fname}.png"
     zip_fname = f"{fname}_analysis.zip"

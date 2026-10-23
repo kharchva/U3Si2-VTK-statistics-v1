@@ -278,3 +278,75 @@ def calc_distribution_from_data(data, fname, nbins, type, area_cm3):
 #
 #
 #
+
+def calc_dependencies_on_distance(df_all, fname, nbins, dmin, dmax, area_cm3, data_type):
+    df = df_all[
+        (df_all["distance"] >= dmin) &
+        (df_all["distance"] <= dmax)
+        ].copy()
+
+    counts, bin_edges = np.histogram(df["distance"], bins=nbins, density=True)
+    y_dist = counts
+    # bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+    # bin_width = bin_edges[1] - bin_edges[0]
+    # x_dist = bin_centers
+
+    counts, bin_edges = np.histogram(df["distance"], bins=nbins, density=False)
+    numdens = counts / area_cm3
+    bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+    bin_width = bin_edges[1] - bin_edges[0]
+    distance = bin_centers
+
+    mean_radius = []
+    swelling = []
+    porosity = []
+
+    for i in range(nbins):
+
+        left = bin_edges[i]
+        right = bin_edges[i + 1]
+
+        mask = (
+                (df["distance"] > left) &
+                (df["distance"] <= right)
+        )
+
+        r = df.loc[mask, "radius"].to_numpy()
+
+        if len(r) > 0:
+            mean_radius.append(np.mean(r))
+            volume = 4.0 / 3.0 * np.pi * r ** 3
+            Sw = np.mean(volume)*numdens[i]*1E-21
+            swelling.append(Sw)
+            porosity.append(Sw/(1 + Sw)*100)
+        else:
+            mean_radius.append(0.0)
+            swelling.append(0.0)
+            porosity.append(0.0)
+
+    y = {
+        "dist": y_dist,
+        "numdens": numdens,
+        "radius": mean_radius,
+        "swelling": swelling,
+        "porosity": porosity
+    }.get(data_type)
+
+    x = distance
+
+    datasets = {f"{fname}.txt": list(zip(x, y))}
+
+    if data_type == "dist":
+        datasets[f"data_{fname}.txt"] = [(i, val) for i, val in enumerate(df["distance"])]
+
+    dict4return = {
+        "x": x,
+        "y": y,
+        "bin_width": bin_width,
+        "mean": df["distance"].mean(),
+        "fname": f"{fname}.txt",
+        "data": df_all,
+        "type": data_type
+                   }
+
+    return dict4return, datasets

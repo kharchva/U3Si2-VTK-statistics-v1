@@ -8,6 +8,7 @@ from libs.paraview import show_VTK
 from libs.paraview import show_two_VTK
 from libs.paraview import show_surface_field
 from libs.distributions import calc_distribution_from_data
+from libs.distributions import calc_dependencies_on_distance
 
 
 def parse_tab_file(fname):
@@ -234,40 +235,158 @@ def calc_bubbles_in_grains(res_gr, res_bub, thr_gr, thr_bub, M, nbins, scale, vo
     resBound = cpp.make_gb(grains1d, M, thr_gr)
     resBubGrDist = cpp.compute_bubble_grain_dist(M, resBulbs, resGrains, resBound)
 
-    data_bcgc_dist = np.array(resBubGrDist.bubCentr2grainCentr) * scale
-    fname_bcgc_dist = "bub_center_grain_center_dist"
-    dictBulbs_bcgc_dist, dataBulbs_bcgc_dist = calc_distribution_from_data(
-        data_bcgc_dist, fname_bcgc_dist, nbins, "dist", vol_cm3)
+    # data_bcgc_dist = np.array(resBubGrDist.bubCentr2grainCentr) * scale
+    # fname_bcgc_dist = "bub_center_grain_center_dist"
+    # dictBulbs_bcgc_dist, dataBulbs_bcgc_dist = calc_distribution_from_data(
+    #     data_bcgc_dist, fname_bcgc_dist, nbins, "dist", vol_cm3)
+    #
+    # data_bcgb_dist = np.array(resBubGrDist.bubCentr2grainBound) * scale
+    # fname_bcgb_dist = "bub_center_grain_bound_dist"
+    # dictBulbs_bcgb_dist, dataBulbs_bcgb_dist = calc_distribution_from_data(
+    #     data_bcgb_dist, fname_bcgb_dist, nbins, "dist", vol_cm3)
+    #
+    # data_begc_dist = np.array(resBubGrDist.bubEdge2grainCentr) * scale
+    # fname_begc_dist = "bub_edge_grain_center_dist"
+    # dictBulbs_begc_dist, dataBulbs_begc_dist = calc_distribution_from_data(
+    #     data_begc_dist, fname_begc_dist, nbins, "dist", vol_cm3)
+    #
+    # data_begb_dist = np.array(resBubGrDist.bubEdge2grainBound) * scale
+    # fname_begb_dist = "bub_edge_grain_bound_dist"
+    # dictBulbs_begb_dist, dataBulbs_begb_dist = calc_distribution_from_data(
+    #     data_begb_dist, fname_begb_dist, nbins, "dist", vol_cm3)
 
-    data_bcgb_dist = np.array(resBubGrDist.bubCentr2grainBound) * scale
-    fname_bcgb_dist = "bub_center_grain_bound_dist"
-    dictBulbs_bcgb_dist, dataBulbs_bcgb_dist = calc_distribution_from_data(
-        data_bcgb_dist, fname_bcgb_dist, nbins, "dist", vol_cm3)
+    df_bcgc = pd.DataFrame({
+        "radius": np.array(resBulbs.list_radius) * scale,
+        "distance": np.array(resBubGrDist.bubCentr2grainCentr) * scale
+    })
+    dmax_bcgc = int(np.ceil(df_bcgc["distance"].max() / 10) * 10)
+    dictBulbs_bcgc_dist, dataBulbs_bcgc_dist = calc_dependencies_on_distance(
+        df_bcgc, "bub_center_grain_center_dist", nbins, 0, dmax_bcgc, vol_cm3, "dist")
+    dictBulbs_bcgc_numdens, dataBulbs_bcgc_numdens = calc_dependencies_on_distance(
+        df_bcgc, "bub_center_grain_center_numdens", nbins, 0, dmax_bcgc, vol_cm3, "numdens")
+    dictBulbs_bcgc_radius, dataBulbs_bcgc_radius = calc_dependencies_on_distance(
+        df_bcgc, "bub_center_grain_center_radius", nbins, 0, dmax_bcgc, vol_cm3, "radius")
+    dictBulbs_bcgc_swelling, dataBulbs_bcgc_swelling = calc_dependencies_on_distance(
+        df_bcgc, "bub_center_grain_center_swelling", nbins, 0, dmax_bcgc, vol_cm3, "swelling")
+    dictBulbs_bcgc_porosity, dataBulbs_bcgc_porosity = calc_dependencies_on_distance(
+        df_bcgc, "bub_center_grain_center_porosity", nbins, 0, dmax_bcgc, vol_cm3, "porosity")
 
-    data_begc_dist = np.array(resBubGrDist.bubEdge2grainCentr) * scale
-    fname_begc_dist = "bub_edge_grain_center_dist"
-    dictBulbs_begc_dist, dataBulbs_begc_dist = calc_distribution_from_data(
-        data_begc_dist, fname_begc_dist, nbins, "dist", vol_cm3)
+    df_bcgb = pd.DataFrame({
+        "radius": np.array(resBulbs.list_radius) * scale,
+        "distance": np.array(resBubGrDist.bubCentr2grainBound) * scale
+    })
+    dmax_bcgb = int(np.ceil(df_bcgb["distance"].max() / 10) * 10)
+    dictBulbs_bcgb_dist, dataBulbs_bcgb_dist = calc_dependencies_on_distance(
+        df_bcgb, "bub_center_grain_bound_dist", nbins, 0, dmax_bcgb, vol_cm3, "dist")
+    dictBulbs_bcgb_numdens, dataBulbs_bcgb_numdens = calc_dependencies_on_distance(
+        df_bcgb, "bub_center_grain_bound_numdens", nbins, 0, dmax_bcgb, vol_cm3, "numdens")
+    dictBulbs_bcgb_radius, dataBulbs_bcgb_radius = calc_dependencies_on_distance(
+        df_bcgb, "bub_center_grain_bound_radius", nbins, 0, dmax_bcgb, vol_cm3, "radius")
+    dictBulbs_bcgb_swelling, dataBulbs_bcgb_swelling = calc_dependencies_on_distance(
+        df_bcgb, "bub_center_grain_bound_swelling", nbins, 0, dmax_bcgb, vol_cm3, "swelling")
+    dictBulbs_bcgb_porosity, dataBulbs_bcgb_porosity = calc_dependencies_on_distance(
+        df_bcgb, "bub_center_grain_bound_porosity", nbins, 0, dmax_bcgb, vol_cm3, "porosity")
 
-    data_begb_dist = np.array(resBubGrDist.bubEdge2grainBound) * scale
-    fname_begb_dist = "bub_edge_grain_bound_dist"
-    dictBulbs_begb_dist, dataBulbs_begb_dist = calc_distribution_from_data(
-        data_begb_dist, fname_begb_dist, nbins, "dist", vol_cm3)
+    df_begc = pd.DataFrame({
+        "radius": np.array(resBulbs.list_radius) * scale,
+        "distance": np.array(resBubGrDist.bubEdge2grainCentr) * scale
+    })
+    dmax_begc = int(np.ceil(df_begc["distance"].max() / 10) * 10)
+    dictBulbs_begc_dist, dataBulbs_begc_dist = calc_dependencies_on_distance(
+        df_begc, "bub_edge_grain_center_dist", nbins, 0, dmax_begc, vol_cm3, "dist")
+    dictBulbs_begc_numdens, dataBulbs_begc_numdens = calc_dependencies_on_distance(
+        df_begc, "bub_edge_grain_center_numdens", nbins, 0, dmax_begc, vol_cm3, "numdens")
+    dictBulbs_begc_radius, dataBulbs_begc_radius = calc_dependencies_on_distance(
+        df_begc, "bub_edge_grain_center_radius", nbins, 0, dmax_begc, vol_cm3, "radius")
+    dictBulbs_begc_swelling, dataBulbs_begc_swelling = calc_dependencies_on_distance(
+        df_begc, "bub_edge_grain_center_swelling", nbins, 0, dmax_begc, vol_cm3, "swelling")
+    dictBulbs_begc_porosity, dataBulbs_begc_porosity = calc_dependencies_on_distance(
+        df_begc, "bub_edge_grain_center_porosity", nbins, 0, dmax_begc, vol_cm3, "porosity")
+
+    df_begb = pd.DataFrame({
+        "radius": np.array(resBulbs.list_radius) * scale,
+        "distance": np.array(resBubGrDist.bubEdge2grainBound) * scale
+    })
+    dmax_begb = int(np.ceil(df_begb["distance"].max() / 10) * 10)
+    dictBulbs_begb_dist, dataBulbs_begb_dist = calc_dependencies_on_distance(
+        df_begb, "bub_edge_grain_bound_dist", nbins, 0, dmax_begb, vol_cm3, "dist")
+    dictBulbs_begb_numdens, dataBulbs_begb_numdens = calc_dependencies_on_distance(
+        df_begb, "bub_edge_grain_bound_numdens", nbins, 0, dmax_begb, vol_cm3, "numdens")
+    dictBulbs_begb_radius, dataBulbs_begb_radius = calc_dependencies_on_distance(
+        df_begb, "bub_edge_grain_bound_radius", nbins, 0, dmax_begb, vol_cm3, "radius")
+    dictBulbs_begb_swelling, dataBulbs_begb_swelling = calc_dependencies_on_distance(
+        df_begb, "bub_edge_grain_bound_swelling", nbins, 0, dmax_begb, vol_cm3, "swelling")
+    dictBulbs_begb_porosity, dataBulbs_begb_porosity = calc_dependencies_on_distance(
+        df_begb, "bub_edge_grain_bound_porosity", nbins, 0, dmax_begb, vol_cm3, "porosity")
 
     bubbles_in_grains_dict = {
-        fname_bcgc_dist: dictBulbs_bcgc_dist,
-        fname_bcgb_dist: dictBulbs_bcgb_dist,
-        fname_begc_dist: dictBulbs_begc_dist,
-        fname_begb_dist: dictBulbs_begb_dist
+        "bub_center_grain_center_dist": dictBulbs_bcgc_dist,
+        "bub_center_grain_center_numdens": dictBulbs_bcgc_numdens,
+        "bub_center_grain_center_radius": dictBulbs_bcgc_radius,
+        "bub_center_grain_center_swelling": dictBulbs_bcgc_swelling,
+        "bub_center_grain_center_porosity": dictBulbs_bcgc_porosity,
+        "bub_center_grain_bound_dist": dictBulbs_bcgb_dist,
+        "bub_center_grain_bound_numdens": dictBulbs_bcgb_numdens,
+        "bub_center_grain_bound_radius": dictBulbs_bcgb_radius,
+        "bub_center_grain_bound_swelling": dictBulbs_bcgb_swelling,
+        "bub_center_grain_bound_porosity": dictBulbs_bcgb_porosity,
+        "bub_edge_grain_center_dist": dictBulbs_begc_dist,
+        "bub_edge_grain_center_numdens": dictBulbs_begc_numdens,
+        "bub_edge_grain_center_radius": dictBulbs_begc_radius,
+        "bub_edge_grain_center_swelling": dictBulbs_begc_swelling,
+        "bub_edge_grain_center_porosity": dictBulbs_begc_porosity,
+        "bub_edge_grain_bound_dist": dictBulbs_begb_dist,
+        "bub_edge_grain_bound_numdens": dictBulbs_begb_numdens,
+        "bub_edge_grain_bound_radius": dictBulbs_begb_radius,
+        "bub_edge_grain_bound_swelling": dictBulbs_begb_swelling,
+        "bub_edge_grain_bound_porosity": dictBulbs_begb_porosity
     }
 
     bubbles_in_grains_data = {
-        fname_bcgc_dist: dataBulbs_bcgc_dist,
-        fname_bcgb_dist: dataBulbs_bcgb_dist,
-        fname_begc_dist: dataBulbs_begc_dist,
-        fname_begb_dist: dataBulbs_begb_dist
+        "bub_center_grain_center_dist": dataBulbs_bcgc_dist,
+        "bub_center_grain_center_numdens": dataBulbs_bcgc_numdens,
+        "bub_center_grain_center_radius": dataBulbs_bcgc_radius,
+        "bub_center_grain_center_swelling": dataBulbs_bcgc_swelling,
+        "bub_center_grain_center_porosity": dataBulbs_bcgc_porosity,
+        "bub_center_grain_bound_dist": dataBulbs_bcgb_dist,
+        "bub_center_grain_bound_numdens": dataBulbs_bcgb_numdens,
+        "bub_center_grain_bound_radius": dataBulbs_bcgb_radius,
+        "bub_center_grain_bound_swelling": dataBulbs_bcgb_swelling,
+        "bub_center_grain_bound_porosity": dataBulbs_bcgb_porosity,
+        "bub_edge_grain_center_dist": dataBulbs_begc_dist,
+        "bub_edge_grain_center_numdens": dataBulbs_begc_numdens,
+        "bub_edge_grain_center_radius": dataBulbs_begc_radius,
+        "bub_edge_grain_center_swelling": dataBulbs_begc_swelling,
+        "bub_edge_grain_center_porosity": dataBulbs_begc_porosity,
+        "bub_edge_grain_bound_dist": dataBulbs_begb_dist,
+        "bub_edge_grain_bound_numdens": dataBulbs_begb_numdens,
+        "bub_edge_grain_bound_radius": dataBulbs_begb_radius,
+        "bub_edge_grain_bound_swelling": dataBulbs_begb_swelling,
+        "bub_edge_grain_bound_porosity": dataBulbs_begb_porosity
     }
 
+    bubbles_in_grains_dmax = {
+        "bub_center_grain_center_dist": dmax_bcgc,
+        "bub_center_grain_center_numdens": dmax_bcgc,
+        "bub_center_grain_center_radius": dmax_bcgc,
+        "bub_center_grain_center_swelling": dmax_bcgc,
+        "bub_center_grain_center_porosity": dmax_bcgc,
+        "bub_center_grain_bound_dist": dmax_bcgb,
+        "bub_center_grain_bound_numdens": dmax_bcgb,
+        "bub_center_grain_bound_radius": dmax_bcgb,
+        "bub_center_grain_bound_swelling": dmax_bcgb,
+        "bub_center_grain_bound_porosity": dmax_bcgb,
+        "bub_edge_grain_center_dist": dmax_begc,
+        "bub_edge_grain_center_numdens": dmax_begc,
+        "bub_edge_grain_center_radius": dmax_begc,
+        "bub_edge_grain_center_swelling": dmax_begc,
+        "bub_edge_grain_center_porosity": dmax_begc,
+        "bub_edge_grain_bound_dist": dmax_begb,
+        "bub_edge_grain_bound_numdens": dmax_begb,
+        "bub_edge_grain_bound_radius": dmax_begb,
+        "bub_edge_grain_bound_swelling": dmax_begb,
+        "bub_edge_grain_bound_porosity": dmax_begb
+    }
     dfBubsGrains = pd.DataFrame({
         "Parameter": ["Mean nearest distance bubble-center to grain-center",
                       "Mean nearest distance bubble-edge to grain-center",
@@ -285,14 +404,13 @@ def calc_bubbles_in_grains(res_gr, res_bub, thr_gr, thr_bub, M, nbins, scale, vo
 
     results_bubbles_in_grains = {
         "df_bubingrains": dfBubsGrains_pivot,
-        # "fig_bulbsgrains": figBulbsGrains,
         "res_dist_bulbs_grains": resBubGrDist,
         "dict": bubbles_in_grains_dict,
-        "data": bubbles_in_grains_data
+        "data": bubbles_in_grains_data,
+        "dmax": bubbles_in_grains_dmax
     }
 
     return results_bubbles_in_grains
-
 
 def calc_bubbleRadius_on_dist_grainCenter(M, grains, bubbles, num_of_grains, num_of_bins, scale, fname):
     resBulb = bubbles["res_bulbs"]
@@ -340,7 +458,23 @@ dictXlable = {
     "bub_center_grain_center_dist": "Nearest distance from bubble center to grain center [nm]",
     "bub_center_grain_bound_dist": "Nearest distance from bubble center to grain boundary [nm]",
     "bub_edge_grain_center_dist": "Nearest distance from bubble edge to grain center [nm]",
-    "bub_edge_grain_bound_dist": "Nearest distance from bubble edge to grain boundary [nm]"
+    "bub_edge_grain_bound_dist": "Nearest distance from bubble edge to grain boundary [nm]",
+    "bub_center_grain_center_numdens": "Nearest distance from bubble center to grain center [nm]",
+    "bub_center_grain_bound_numdens": "Nearest distance from bubble center to grain boundary [nm]",
+    "bub_edge_grain_center_numdens": "Nearest distance from bubble edge to grain center [nm]",
+    "bub_edge_grain_bound_numdens": "Nearest distance from bubble edge to grain boundary [nm]",
+    "bub_center_grain_center_radius": "Nearest distance from bubble center to grain center [nm]",
+    "bub_center_grain_bound_radius": "Nearest distance from bubble center to grain boundary [nm]",
+    "bub_edge_grain_center_radius": "Nearest distance from bubble edge to grain center [nm]",
+    "bub_edge_grain_bound_radius": "Nearest distance from bubble edge to grain boundary [nm]",
+    "bub_center_grain_center_swelling": "Nearest distance from bubble center to grain center [nm]",
+    "bub_center_grain_bound_swelling": "Nearest distance from bubble center to grain boundary [nm]",
+    "bub_edge_grain_center_swelling": "Nearest distance from bubble edge to grain center [nm]",
+    "bub_edge_grain_bound_swelling": "Nearest distance from bubble edge to grain boundary [nm]",
+    "bub_center_grain_center_porosity": "Nearest distance from bubble center to grain center [nm]",
+    "bub_center_grain_bound_porosity": "Nearest distance from bubble center to grain boundary [nm]",
+    "bub_edge_grain_center_porosity": "Nearest distance from bubble edge to grain center [nm]",
+    "bub_edge_grain_bound_porosity": "Nearest distance from bubble edge to grain boundary [nm]"
 }
 
 dictYlable = {
@@ -357,7 +491,23 @@ dictYlable = {
     "bub_center_grain_center_dist": "Normalized distribution",
     "bub_center_grain_bound_dist": "Normalized distribution",
     "bub_edge_grain_center_dist": "Normalized distribution",
-    "bub_edge_grain_bound_dist": "Normalized distribution"
+    "bub_edge_grain_bound_dist": "Normalized distribution",
+    "bub_center_grain_center_numdens": "Number density of bubbles [cm⁻³]",
+    "bub_center_grain_bound_numdens": "Number density of bubbles [cm⁻³]",
+    "bub_edge_grain_center_numdens": "Number density of bubbles [cm⁻³]",
+    "bub_edge_grain_bound_numdens": "Number density of bubbles [cm⁻³]",
+    "bub_center_grain_center_radius": "Mean bubbles radius <Rb> [nm]",
+    "bub_center_grain_bound_radius": "Mean bubbles radius <Rb> [nm]",
+    "bub_edge_grain_center_radius": "Mean bubbles radius <Rb> [nm]",
+    "bub_edge_grain_bound_radius": "Mean bubbles radius <Rb> [nm]",
+    "bub_center_grain_center_swelling": "Swelling",
+    "bub_center_grain_bound_swelling": "Swelling",
+    "bub_edge_grain_center_swelling": "Swelling",
+    "bub_edge_grain_bound_swelling": "Swelling",
+    "bub_center_grain_center_porosity": "Porosity [%]",
+    "bub_center_grain_bound_porosity": "Porosity [%]",
+    "bub_edge_grain_center_porosity": "Porosity [%]",
+    "bub_edge_grain_bound_porosity": "Porosity [%]"
 }
 
 
@@ -383,7 +533,23 @@ dictBinsDists = {
     "bub_center_grain_center_dist": "Normalized distribution",
     "bub_center_grain_bound_dist": "Normalized distribution",
     "bub_edge_grain_center_dist": "Normalized distribution",
-    "bub_edge_grain_bound_dist": "Normalized distribution"
+    "bub_edge_grain_bound_dist": "Normalized distribution",
+    "bub_center_grain_center_numdens": "Number density of bubbles [cm⁻³]",
+    "bub_center_grain_bound_numdens": "Number density of bubbles [cm⁻³]",
+    "bub_edge_grain_center_numdens": "Number density of bubbles [cm⁻³]",
+    "bub_edge_grain_bound_numdens": "Number density of bubbles [cm⁻³]",
+    "bub_center_grain_center_radius": "Mean bubbles radius <Rb> [nm]",
+    "bub_center_grain_bound_radius": "Mean bubbles radius <Rb> [nm]",
+    "bub_edge_grain_center_radius": "Mean bubbles radius <Rb> [nm]",
+    "bub_edge_grain_bound_radius": "Mean bubbles radius <Rb> [nm]",
+    "bub_center_grain_center_swelling": "Swelling",
+    "bub_center_grain_bound_swelling": "Swelling",
+    "bub_edge_grain_center_swelling": "Swelling",
+    "bub_edge_grain_bound_swelling": "Swelling",
+    "bub_center_grain_center_porosity": "Porosity [%]",
+    "bub_center_grain_bound_porosity": "Porosity [%]",
+    "bub_edge_grain_center_porosity": "Porosity [%]",
+    "bub_edge_grain_bound_porosity": "Porosity [%]"
 }
 
 def fig_labels(fname):
