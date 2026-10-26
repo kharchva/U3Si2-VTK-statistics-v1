@@ -150,9 +150,9 @@ if st.session_state.set_par:
     top_tabs = st.tabs([
         f"💨 **Dynamics of bubbles formation**",
         f"🫧 **Gas bubbles**",
-        f"🔷 **Grain structure**",
-        f"🧊 **Bubbles inside grains**",
-        f"🧪 **Bubbles microstructure**"
+        f"🧊 **Grain structure**",
+        f"📐 **Statistics of bubbles in grains**",
+        f"🔬 **Bubbles microstructure**"
     ])
 
     with top_tabs[0]:
@@ -195,7 +195,7 @@ if st.session_state.set_par:
                 show_distribution("results_bubbles", "edge_dist_bubbles", "blue")
 
     with top_tabs[2]:
-        st.header(f"🔷 Grain structure:")
+        st.header(f"🧊 Grain structure:")
         show_results_grains()
         if st.session_state["results_grains"] is not None:
             st.subheader(f"📈 Graphical results")
@@ -223,7 +223,7 @@ if st.session_state.set_par:
                 show_distribution("results_grains", "size_grains_mean_dens", "orange")
 
     with top_tabs[3]:
-        st.header(f"🧊 Bubbles inside Grains:")
+        st.header(f"📐 Statistics of bubbles in grains:")
         show_results_bubbles_in_grains()
         if st.session_state["results_bubbles_in_grains"] is not None:
             st.subheader(f"📈 Graphical results")
@@ -303,16 +303,16 @@ if st.session_state.set_par:
             #     show_meanBubSize_on_distGrainCenter("bubRad_vs_distGrCentr")
 
     with top_tabs[4]:
-        st.header(f"🧪 **Bubbles microstructure**")
+        st.header(f"🔬 **Bubbles microstructure**")
         colbubs, colgrns = st.columns(2)
         with colbubs:
             if st.session_state.BubblesFileName is not None:
-                st.success(f"**Bubbles file name:** {st.session_state.BubblesFileName}")
+                st.success(f"**Bubbles file name:**\n\n {st.session_state.BubblesFileName}")
             else:
                 st.warning("File with bubbles was not downloaded")
         with colgrns:
             if st.session_state.GrainsFileName is not None:
-                st.success(f"**Grains file name:** {st.session_state.GrainsFileName}")
+                st.success(f"**Grains file name:**\n\n {st.session_state.GrainsFileName}")
             else:
                 st.warning("File with grains was not downloaded")
 

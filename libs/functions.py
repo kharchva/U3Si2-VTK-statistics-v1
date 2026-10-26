@@ -55,7 +55,7 @@ def getdata(FileName):
         # field3d = field3d[:, :, np.newaxis]
     # print(field3d.shape)
 
-    return field3d, fname
+    return Nx, Ny, Nz, field3d, fname
 
 
 # def show_bulbes(field3d, M, threshold):

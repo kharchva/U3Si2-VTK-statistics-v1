@@ -110,13 +110,16 @@ def show_results_bubbles():
         if BubblesFileName is not None:
             st.session_state.BubblesFileName = BubblesFileName.name
             if st.session_state.bub3d is None:
-                bub3d, bubfname = getdata(BubblesFileName)
+                bubNx, bubNy, bubNz, bub3d, bubfname = getdata(BubblesFileName)
                 minv = bub3d.min()
                 maxv = bub3d.max()
                 st.session_state.bub3d = bub3d
                 st.session_state.bubfname = bubfname
                 st.session_state.minv = minv
                 st.session_state.maxv = maxv
+                st.session_state.bubNx = bubNx
+                st.session_state.bubNy = bubNy
+                st.session_state.bubNz = bubNz
 
             with c12:
                 col121, col122 = st.columns(2)
@@ -143,34 +146,48 @@ def show_results_bubbles():
                 color = cmap(threshold_bubbles)
                 color = mcolors.to_hex(color)
                 show_clip(st.session_state.bub3d, threshold_bubbles, color)
-            with c15:
-                # start_bub = st.button("▶️ Start calculations", key="button_bub")
 
-                set_min_num_cells_bubbles = st.checkbox("Ignore small bubbles", value=False, key="small_bubbles")
-                if set_min_num_cells_bubbles:
-                    min_num_cells_bubbles = st.number_input(
-                        "Minimal number of cells",
-                        value=1,
-                        min_value=1,
-                        step=1,
-                        max_value=st.session_state.M**3,
-                        key="min_num_cells_bubbles"
-                    )
+            with c11:
+                st.session_state.bubSize = True
+                if not (st.session_state.bubNx == st.session_state.bubNy == st.session_state.bubNz):
+                    st.warning(
+                        f"Dimension is ({st.session_state.bubNx}, {st.session_state.bubNy}, {st.session_state.bubNz}). \n\n"
+                        f"Calculations can be done for the cubic sell (M, M, M).")
+                    st.session_state.bubSize = False
                 else:
-                    min_num_cells_bubbles = 1
-                set_max_num_cells_bubbles = st.checkbox("Ignore large bubbles", value=False, key="large_bubbles")
-                if set_max_num_cells_bubbles:
-                    max_num_cells_bubbles = st.number_input(
-                        "Maximal number of cells",
-                        value=st.session_state.M,
-                        min_value=1,
-                        step=1,
-                        max_value=st.session_state.M**3,
-                        key="max_num_cells_bubbles"
-                    )
-                else:
-                    max_num_cells_bubbles = st.session_state.M**3
-                start_bub = st.button("▶️ Start calculations", key="button_bub")
+                    if not (st.session_state.bubNx == st.session_state.M):
+                        st.warning(f"The linear size is M = {st.session_state.bubNx}. Check parameters.")
+
+            with c15:
+                if st.session_state.bubSize:
+                    # start_bub = st.button("▶️ Start calculations", key="button_bub")
+
+                    set_min_num_cells_bubbles = st.checkbox("Ignore small bubbles", value=False, key="small_bubbles")
+                    if set_min_num_cells_bubbles:
+                        min_num_cells_bubbles = st.number_input(
+                            "Minimal number of cells",
+                            value=1,
+                            min_value=1,
+                            step=1,
+                            max_value=st.session_state.M**3,
+                            key="min_num_cells_bubbles"
+                        )
+                    else:
+                        min_num_cells_bubbles = 1
+                    set_max_num_cells_bubbles = st.checkbox("Ignore large bubbles", value=False, key="large_bubbles")
+                    if set_max_num_cells_bubbles:
+                        max_num_cells_bubbles = st.number_input(
+                            "Maximal number of cells",
+                            value=st.session_state.M,
+                            min_value=1,
+                            step=1,
+                            max_value=st.session_state.M**3,
+                            key="max_num_cells_bubbles"
+                        )
+                    else:
+                        max_num_cells_bubbles = st.session_state.M**3
+                    start_bub = st.button("▶️ Start calculations", key="button_bub")
+
                 if start_bub:
                     if max_num_cells_bubbles < min_num_cells_bubbles:
                         st.error("Maximal number of cells should be more than minimal number of cells !!!")
@@ -215,13 +232,16 @@ def show_results_grains():
         if GrainsFileName is not None:
             st.session_state.GrainsFileName = GrainsFileName.name
             if st.session_state.gr3d is None:
-                gr3d, grfname = getdata(GrainsFileName)
+                grNx, grNy, grNz, gr3d, grfname = getdata(GrainsFileName)
                 minvg = gr3d.min()
                 maxvg = gr3d.max()
                 st.session_state.gr3d = gr3d
                 st.session_state.grfname = grfname
                 st.session_state.minvg = minvg
                 st.session_state.maxvg = maxvg
+                st.session_state.grNx = grNx
+                st.session_state.grNy = grNy
+                st.session_state.grNz = grNz
 
             with c22:
                 col221, col222 = st.columns(2)
@@ -249,33 +269,47 @@ def show_results_grains():
                 color = mcolors.to_hex(color)
                 # show_clip(st.session_state.gr3d, threshold_grains, "orange")
                 show_clip(st.session_state.gr3d, threshold_grains, color)
-            with c25:
-                set_min_num_cells_grains = st.checkbox("Ignore small grains", value=False, key="small_grains")
-                if set_min_num_cells_grains:
-                    min_num_cells_grains = st.number_input(
-                        "Minimal number of cells",
-                        value=1,
-                        min_value=1,
-                        step=1,
-                        max_value=st.session_state.M**3,
-                        key="min_num_cells_grains"
-                    )
-                else:
-                    min_num_cells_grains = 1
-                set_max_num_cells_grains = st.checkbox("Ignore large grains", value=False, key="large_grains")
-                if set_max_num_cells_grains:
-                    max_num_cells_grains = st.number_input(
-                        "Maximal number of cells",
-                        value=st.session_state.M,
-                        min_value=1,
-                        step=1,
-                        max_value=st.session_state.M**3,
-                        key="max_num_cells_grains"
-                    )
-                else:
-                    max_num_cells_grains = st.session_state.M**3
 
-                start_gr = st.button("▶️ Start calculations", key="button_gr")
+            with c21:
+                st.session_state.grSize = True
+                if not (st.session_state.grNx == st.session_state.grNy == st.session_state.grNz):
+                    st.warning(
+                        f"Dimension is ({st.session_state.grNx}, {st.session_state.grNy}, {st.session_state.grNz}). \n\n"
+                        f"Calculations can be done for the cubic sell (M, M, M).")
+                    st.session_state.grSize = False
+                else:
+                    if not (st.session_state.grNx == st.session_state.M):
+                        st.warning(f"The linear size is M = {st.session_state.grNx}. Check parameters.")
+
+            with c25:
+                if st.session_state.grSize:
+                    set_min_num_cells_grains = st.checkbox("Ignore small grains", value=False, key="small_grains")
+                    if set_min_num_cells_grains:
+                        min_num_cells_grains = st.number_input(
+                            "Minimal number of cells",
+                            value=1,
+                            min_value=1,
+                            step=1,
+                            max_value=st.session_state.M**3,
+                            key="min_num_cells_grains"
+                        )
+                    else:
+                        min_num_cells_grains = 1
+                    set_max_num_cells_grains = st.checkbox("Ignore large grains", value=False, key="large_grains")
+                    if set_max_num_cells_grains:
+                        max_num_cells_grains = st.number_input(
+                            "Maximal number of cells",
+                            value=st.session_state.M,
+                            min_value=1,
+                            step=1,
+                            max_value=st.session_state.M**3,
+                            key="max_num_cells_grains"
+                        )
+                    else:
+                        max_num_cells_grains = st.session_state.M**3
+
+                    start_gr = st.button("▶️ Start calculations", key="button_gr")
+
                 if start_gr:
                     if max_num_cells_grains < min_num_cells_grains:
                         st.error("Maximal number of cells should be more than minimal number of cells !!!")
@@ -310,15 +344,23 @@ def show_results_grains():
 def show_results_bubbles_in_grains():
     c31, c32 = st.columns(2)
     with c31:
-        if st.session_state.BubblesFileName is not None:
-            st.success(f"**Bubbles file name:**\n\n {st.session_state.BubblesFileName}")
+        if st.session_state.BubblesFileName is not None and st.session_state.GrainsFileName is not None:
+            if st.session_state.bubNx != st.session_state.grNx:
+                st.success(f"**Bubbles file name:**\n\n {st.session_state.BubblesFileName}\n\n "
+                       f"The linear size is M = {st.session_state.bubNx}")
+            else:
+                st.success(f"**Bubbles file name:**\n\n {st.session_state.BubblesFileName}")
         else:
             st.warning("File with bubbles was not downloaded")
         if st.session_state.results_bubbles is None:
             st.warning("Calculations of bubbles are needed")
     with c32:
         if st.session_state.GrainsFileName is not None:
-            st.success(f"**Grains file name:**\n\n {st.session_state.GrainsFileName}")
+            if st.session_state.bubNx != st.session_state.grNx:
+                st.success(f"**Grains file name:**\n\n {st.session_state.GrainsFileName}\n\n "
+                       f"The linear size is ({st.session_state.grNx})")
+            else:
+                st.success(f"**Grains file name:**\n\n {st.session_state.GrainsFileName}")
         else:
             st.warning("File with grains was not downloaded")
         if st.session_state.results_grains is None:
@@ -326,14 +368,18 @@ def show_results_bubbles_in_grains():
     c33, c34 = st.columns(2)
     with c33:
         if st.session_state.results_grains is not None and st.session_state.results_bubbles is not None:
-            start_bub_in_gr = st.button(
-                "▶️ Start calculations",
-                key="button_bubgr",
-                disabled=(
-                        st.session_state.get("results_grains") is None or
-                        st.session_state.get("results_bubbles") is None
+            if st.session_state.bubNx != st.session_state.grNx:
+                st.warning("Dimensions are not the same !!!")
+            else:
+                start_bub_in_gr = st.button(
+                    "▶️ Start calculations",
+                    key="button_bubgr",
+                    disabled=(
+                            st.session_state.get("results_grains") is None or
+                            st.session_state.get("results_bubbles") is None or
+                            st.session_state.bubNx != st.session_state.grNx
+                    )
                 )
-            )
             if start_bub_in_gr:
                 if st.session_state["results_grains"] is not None and st.session_state["results_bubbles"] is not None:
                     results_bubbles_in_grains = calc_bubbles_in_grains(
@@ -342,7 +388,6 @@ def show_results_bubbles_in_grains():
                         st.session_state.M, st.session_state.bins,
                         st.session_state.scale, st.session_state.vol_cm3)
                     st.session_state["results_bubbles_in_grains"] = results_bubbles_in_grains
-
     with c34:
         if st.session_state.BubblesFileName is not None and st.session_state.GrainsFileName is not None:
             col_cl1, col_cl2 = st.columns(2)
@@ -382,17 +427,19 @@ def show_results_gas_in_bubbles():
         on_change=reset_gas,
     )
 
-
     if GasFileName is not None:
         st.session_state.GasFileName = GasFileName.name
         if st.session_state.gas3d is None:
-            gas3d, gasfname = getdata(GasFileName)
+            gasNx, gasNy, gasNz, gas3d, gasfname = getdata(GasFileName)
             mincg = gas3d.min()
             maxcg = gas3d.max()
             st.session_state.gas3d = gas3d
             st.session_state.gasfname = gasfname
             st.session_state.mincg = mincg
             st.session_state.maxcg = maxcg
+            st.session_state.gasNx = gasNx
+            st.session_state.gasNy = gasNy
+            st.session_state.gasNz = gasNz
 
         colming, colmaxg = st.columns(2)
         with colming:
@@ -416,13 +463,15 @@ def show_results_gas_in_bubbles():
         with colgas2:
             color_gas = st.selectbox("Color for Gas-atoms field", list(color_options), index=0)
 
-        if st.session_state.BubblesFileName is not None:
+        if st.session_state.BubblesFileName is not None and st.session_state.gasNx == st.session_state.bubNx:
             st.markdown("**Bubbles field parameters**")
             colbub1, colbub2 = st.columns(2)
             with colbub1:
                 opacity_bub = st.slider("Opacity for Bubbles field", 0.0, 1.0, 0.5, key="gasinbub_op")
             with colbub2:
                 color_bub = st.selectbox("Color for Bubbles field", list(color_options), index=12, key="gasinbub_col")
+        else:
+            st.warning(f"Dimensions for bubbles and gas atoms are different")
 
         show_gr = False
         if st.session_state.GrainsFileName is not None:
@@ -463,7 +512,7 @@ def show_results_vac_in_bubbles():
     if VacFileName is not None:
         st.session_state.VacFileName = VacFileName.name
         if st.session_state.vac3d is None:
-            vac3d, vacfname = getdata(VacFileName)
+            vacNx, vacNy, vacNz, vac3d, vacfname = getdata(VacFileName)
             mincv = vac3d.min()
             maxcv = vac3d.max()
             st.session_state.vac3d = vac3d
