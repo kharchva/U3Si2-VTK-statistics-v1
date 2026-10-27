@@ -28,17 +28,22 @@ from libs.mkfigures import make_figure_radius_on_distance_png
 from libs.mkfigures import make_time_dependence_png
 
 from libs.paraview import show_surface_field
+from libs.paraview import show_surface_field_2D
 from libs.paraview import show_VTK
 from libs.paraview import show_two_VTK
 from libs.paraview import show_three_VTK
+from libs.paraview import show_VTK_2D
+from libs.paraview import show_two_VTK_2D
 
 
 color_options = [
     "Red", "Green", "Blue", "Yellow", "Purple", "Orange", "Pink", "Brown", "Cyan",
     "Magenta", "Lime", "Navy", "Teal", "Olive", "Maroon", "Gold"]
 
-
+color_schemes = ["RdBu_r", "viridis", "plasma", "inferno", "magma", "cividis", "turbo", "thermal",
+                 "icefire", "balance", "rdylbu", "spectral"]
 def reset_bubbles():
+    st.session_state.results_bubbles_in_grains = None
     st.session_state.results_bubbles = None
     st.session_state.bub3d = None
     st.session_state.threshold_bubbles = None
@@ -49,6 +54,7 @@ def reset_bubbles():
 
 
 def reset_grains():
+    st.session_state.results_bubbles_in_grains = None
     st.session_state.results_grains = None
     st.session_state.gr3d = None
     st.session_state.threshold_grains = None
@@ -75,6 +81,7 @@ def reset_vac():
     st.session_state.maxcv = None
     st.session_state.VacFileName = None
 
+
 @st.fragment
 def show_surface(field):
     fig = show_surface_field(field)
@@ -82,10 +89,13 @@ def show_surface(field):
 
 
 @st.fragment
+def show_surface_2D(field):
+    fig = show_surface_field_2D(field)
+    st.plotly_chart(fig, width="stretch")
+
+
+@st.fragment
 def show_clip(field, thr, color):
-    # Nx, Ny, Nz = field.shape
-    # if Nz < 2:
-    #     field = np.repeat(field, 2, axis=2)   # тепер форма (Nx, Ny, 2)
     fig = show_VTK(field, thr, color)
     st.plotly_chart(fig, width="stretch")
 
@@ -96,31 +106,61 @@ def show_clip2(field1, field2, thr1, thr2, color1, color2):
     st.plotly_chart(fig, width="stretch")
 
 
+@st.fragment
+def show_clip_2D(field, thr, color):
+    fig = show_VTK_2D(field, thr, color)
+    st.plotly_chart(fig, width="stretch")
+
+
+@st.fragment
+def show_clip2_2D(field1, field2, thr1, thr2, color1, color2):
+    fig = show_two_VTK_2D(field1, field2, thr1, thr2, color1, color2, opacity1=1.0, opacity2=1.0)
+    st.plotly_chart(fig, width="stretch")
+
+
 def show_results_bubbles():
     c11, c12 = st.columns(2)
     c13, c14 = st.columns(2)
     c15, c16 = st.columns(2)
+
     with c11:
         BubblesFileName = st.file_uploader(
             "Download bubbles file",
             type=["vtk"],
             key="bubble_uploader",
-            on_change=reset_bubbles,
+            on_change=reset_bubbles
         )
-        if BubblesFileName is not None:
-            st.session_state.BubblesFileName = BubblesFileName.name
-            if st.session_state.bub3d is None:
-                bubNx, bubNy, bubNz, bub3d, bubfname = getdata(BubblesFileName)
-                minv = bub3d.min()
-                maxv = bub3d.max()
-                st.session_state.bub3d = bub3d
-                st.session_state.bubfname = bubfname
-                st.session_state.minv = minv
-                st.session_state.maxv = maxv
-                st.session_state.bubNx = bubNx
-                st.session_state.bubNy = bubNy
-                st.session_state.bubNz = bubNz
 
+    if BubblesFileName is not None:
+        st.session_state.BubblesFileName = BubblesFileName.name
+        if st.session_state.bub3d is None:
+            bubNx, bubNy, bubNz, bub3d, bubfname = getdata(BubblesFileName)
+            minv = bub3d.min()
+            maxv = bub3d.max()
+            st.session_state.bub3d = bub3d
+            st.session_state.bubfname = bubfname
+            st.session_state.minv = minv
+            st.session_state.maxv = maxv
+            st.session_state.bubNx = bubNx
+            st.session_state.bubNy = bubNy
+            st.session_state.bubNz = bubNz
+
+    if st.session_state.BubblesFileName is not None:
+        if st.session_state.BubblesFileName == st.session_state.GrainsFileName:
+            with c11:
+                st.error(f"File {st.session_state.BubblesFileName} is already uploaded as Grains")
+                reset_bubbles()
+        else:
+            with c11:
+                if st.session_state.bubNx == st.session_state.bubNy == st.session_state.bubNz:
+                    st.session_state.bubSize = True
+                    if not (st.session_state.bubNx == st.session_state.M):
+                        st.warning(f"The linear size is M = {st.session_state.bubNx}. Check parameters.")
+                else:
+                    st.warning(
+                        f"Dimension is ({st.session_state.bubNx}, {st.session_state.bubNy}, {st.session_state.bubNz}). \n\n"
+                        f"Calculations can be done for the cubic sell (M, M, M).")
+                    st.session_state.bubSize = False
             with c12:
                 col121, col122 = st.columns(2)
                 with col121:
@@ -130,38 +170,35 @@ def show_results_bubbles():
 
                 minv = float(st.session_state.minv)
                 maxv = float(st.session_state.maxv)
-                threshold_bubbles = st.number_input(
-                    "Threshold for Gas-atoms",
-                    value=minv + (maxv - minv) / 2,
-                    min_value=minv,
-                    step=(maxv - minv) / 100,
-                    max_value=maxv
-                )
-                st.session_state.threshold_bubbles = threshold_bubbles
+                col123, col124 = st.columns(2)
+                with col123:
+                    threshold_bubbles = st.number_input(
+                        "Threshold for Bubbles",
+                        value=minv + (maxv - minv) / 2,
+                        min_value=minv,
+                        step=(maxv - minv) / 100,
+                        max_value=maxv,
+                        key="value_threshold_bubbles"
+                    )
+                    st.session_state.threshold_bubbles = threshold_bubbles
+                with col124:
+                    if st.session_state.bubNz == 1:
+                        colorbub1 = st.selectbox("Color scheme for Bubbles", list(color_schemes), index=0, key="color_bub_2d_1")
+                    else:
+                        colorbub1 = st.selectbox("Color for Bubbles", list(color_options), index=0, key="color_bub_3d_1")
 
             with c13:
-                show_surface(st.session_state.bub3d)
-            with c14:
-                cmap = plt.get_cmap("RdBu_r")
-                color = cmap(threshold_bubbles)
-                color = mcolors.to_hex(color)
-                show_clip(st.session_state.bub3d, threshold_bubbles, color)
-
-            with c11:
-                st.session_state.bubSize = True
-                if not (st.session_state.bubNx == st.session_state.bubNy == st.session_state.bubNz):
-                    st.warning(
-                        f"Dimension is ({st.session_state.bubNx}, {st.session_state.bubNy}, {st.session_state.bubNz}). \n\n"
-                        f"Calculations can be done for the cubic sell (M, M, M).")
-                    st.session_state.bubSize = False
+                if st.session_state.bubNz == 1:
+                    show_surface_2D(st.session_state.bub3d)
                 else:
-                    if not (st.session_state.bubNx == st.session_state.M):
-                        st.warning(f"The linear size is M = {st.session_state.bubNx}. Check parameters.")
-
+                    show_surface(st.session_state.bub3d)
+            with c14:
+                if st.session_state.bubNz == 1:
+                    show_clip_2D(st.session_state.bub3d, threshold_bubbles, colorbub1)
+                else:
+                    show_clip(st.session_state.bub3d, threshold_bubbles, colorbub1)
             with c15:
                 if st.session_state.bubSize:
-                    # start_bub = st.button("▶️ Start calculations", key="button_bub")
-
                     set_min_num_cells_bubbles = st.checkbox("Ignore small bubbles", value=False, key="small_bubbles")
                     if set_min_num_cells_bubbles:
                         min_num_cells_bubbles = st.number_input(
@@ -174,6 +211,7 @@ def show_results_bubbles():
                         )
                     else:
                         min_num_cells_bubbles = 1
+
                     set_max_num_cells_bubbles = st.checkbox("Ignore large bubbles", value=False, key="large_bubbles")
                     if set_max_num_cells_bubbles:
                         max_num_cells_bubbles = st.number_input(
@@ -186,36 +224,33 @@ def show_results_bubbles():
                         )
                     else:
                         max_num_cells_bubbles = st.session_state.M**3
+
                     start_bub = st.button("▶️ Start calculations", key="button_bub")
 
-                if start_bub:
-                    if max_num_cells_bubbles < min_num_cells_bubbles:
-                        st.error("Maximal number of cells should be more than minimal number of cells !!!")
-                    else:
-                        results_bubbles = calc_bulbes(st.session_state.bub3d, st.session_state.bubfname,
-                                                      st.session_state.threshold_bubbles,
-                                                      st.session_state.M, st.session_state.bins,
-                                                      st.session_state.scale, st.session_state.vol_cm3,
-                                                      min_num_cells_bubbles, max_num_cells_bubbles)
-                        st.session_state["results_bubbles"] = results_bubbles
-                if st.session_state["results_bubbles"] is not None:
-                    st.session_state["numbins"].update(
-                        {name: st.session_state.bins for name in dictBinsBubbles}
-                    )
-                    res_bub = st.session_state["results_bubbles"]
-                    with c16:
-                        st.markdown(""" Bubbles statistics """)
-                        table = res_bub["df_bulbs"]
-                    #     st.dataframe(
-                    #             table.style.format({"Value": "{:.1f}"}),
-                    #             width="stretch"
-                    # )
-                        st.dataframe(
-                            table.style.format({
-                                "Value": lambda x: f"{int(x)}" if isinstance(x, int) or x.is_integer() else f"{x:.1f}"
-                            }),
-                            width="stretch"
+                    if start_bub:
+                        if max_num_cells_bubbles < min_num_cells_bubbles:
+                            st.error("Maximal number of cells should be more than minimal number of cells !!!")
+                        else:
+                            results_bubbles = calc_bulbes(st.session_state.bub3d, st.session_state.bubfname,
+                                                          st.session_state.threshold_bubbles,
+                                                          st.session_state.M, st.session_state.bins,
+                                                          st.session_state.scale, st.session_state.vol_cm3,
+                                                          min_num_cells_bubbles, max_num_cells_bubbles)
+                            st.session_state["results_bubbles"] = results_bubbles
+                    if st.session_state["results_bubbles"] is not None:
+                        st.session_state["numbins"].update(
+                            {name: st.session_state.bins for name in dictBinsBubbles}
                         )
+                        res_bub = st.session_state["results_bubbles"]
+                        with c16:
+                            st.markdown(""" Bubbles statistics """)
+                            table = res_bub["df_bulbs"]
+                            st.dataframe(
+                                table.style.format({
+                                    "Value": lambda x: f"{int(x)}" if isinstance(x, int) or x.is_integer() else f"{x:.1f}"
+                                }),
+                                width="stretch"
+                            )
 
 
 def show_results_grains():
@@ -229,19 +264,36 @@ def show_results_grains():
             key="grain_uploader",
             on_change=reset_grains,
         )
-        if GrainsFileName is not None:
-            st.session_state.GrainsFileName = GrainsFileName.name
-            if st.session_state.gr3d is None:
-                grNx, grNy, grNz, gr3d, grfname = getdata(GrainsFileName)
-                minvg = gr3d.min()
-                maxvg = gr3d.max()
-                st.session_state.gr3d = gr3d
-                st.session_state.grfname = grfname
-                st.session_state.minvg = minvg
-                st.session_state.maxvg = maxvg
-                st.session_state.grNx = grNx
-                st.session_state.grNy = grNy
-                st.session_state.grNz = grNz
+    if GrainsFileName is not None:
+        st.session_state.GrainsFileName = GrainsFileName.name
+        if st.session_state.gr3d is None:
+            grNx, grNy, grNz, gr3d, grfname = getdata(GrainsFileName)
+            minvg = gr3d.min()
+            maxvg = gr3d.max()
+            st.session_state.gr3d = gr3d
+            st.session_state.grfname = grfname
+            st.session_state.minvg = minvg
+            st.session_state.maxvg = maxvg
+            st.session_state.grNx = grNx
+            st.session_state.grNy = grNy
+            st.session_state.grNz = grNz
+
+    if st.session_state.GrainsFileName is not None:
+        if st.session_state.GrainsFileName == st.session_state.BubblesFileName:
+            with c21:
+                st.error(f"File {st.session_state.GrainsFileName} is already uploaded as Bubbles")
+                reset_grains()
+        else:
+            with c21:
+                if st.session_state.grNx == st.session_state.grNy == st.session_state.grNz:
+                    st.session_state.grSize = True
+                    if not (st.session_state.grNx == st.session_state.M):
+                        st.warning(f"The linear size is M = {st.session_state.grNx}. Check parameters.")
+                else:
+                    st.warning(
+                        f"Dimension is ({st.session_state.grNx}, {st.session_state.grNy}, {st.session_state.grNz}) \n\n"
+                        f"Calculations can be done for the cubic sell (M, M, M).")
+                    st.session_state.grSize = False
 
             with c22:
                 col221, col222 = st.columns(2)
@@ -252,34 +304,33 @@ def show_results_grains():
 
                 minvg = float(st.session_state.minvg)
                 maxvg = float(st.session_state.maxvg)
-                threshold_grains = st.number_input(
-                    "Threshold for Gas-atoms",
-                    value=minvg + (maxvg - minvg) / 2,
-                    min_value=minvg,
-                    step=(maxvg - minvg) / 100,
-                    max_value=maxvg
-                )
-                st.session_state.threshold_grains = threshold_grains
+                col223, col224 = st.columns(2)
+                with col223:
+                    threshold_grains = st.number_input(
+                        "Threshold for Grains",
+                        value=minvg + (maxvg - minvg) / 2,
+                        min_value=minvg,
+                        step=(maxvg - minvg) / 100,
+                        max_value=maxvg,
+                        key="value_threshold_grains"
+                    )
+                    st.session_state.threshold_grains = threshold_grains
+                with col224:
+                    if st.session_state.grNz == 1:
+                        colorgr1 = st.selectbox("Color scheme for Grains", list(color_schemes), index=0, key="color_gr_2d_1")
+                    else:
+                        colorgr1 = st.selectbox("Color for Grains", list(color_options), index=0, key="color_gr_3d_1")
 
             with c23:
-                show_surface(st.session_state.gr3d)
-            with c24:
-                cmap = plt.get_cmap("RdBu_r")
-                color = cmap(threshold_grains)
-                color = mcolors.to_hex(color)
-                # show_clip(st.session_state.gr3d, threshold_grains, "orange")
-                show_clip(st.session_state.gr3d, threshold_grains, color)
-
-            with c21:
-                st.session_state.grSize = True
-                if not (st.session_state.grNx == st.session_state.grNy == st.session_state.grNz):
-                    st.warning(
-                        f"Dimension is ({st.session_state.grNx}, {st.session_state.grNy}, {st.session_state.grNz}). \n\n"
-                        f"Calculations can be done for the cubic sell (M, M, M).")
-                    st.session_state.grSize = False
+                if st.session_state.grNz == 1:
+                    show_surface_2D(st.session_state.gr3d)
                 else:
-                    if not (st.session_state.grNx == st.session_state.M):
-                        st.warning(f"The linear size is M = {st.session_state.grNx}. Check parameters.")
+                    show_surface(st.session_state.gr3d)
+            with c24:
+                if st.session_state.grNz == 1:
+                    show_clip_2D(st.session_state.gr3d, threshold_grains, colorgr1)
+                else:
+                    show_clip(st.session_state.gr3d, threshold_grains, colorgr1)
 
             with c25:
                 if st.session_state.grSize:
@@ -310,44 +361,47 @@ def show_results_grains():
 
                     start_gr = st.button("▶️ Start calculations", key="button_gr")
 
-                if start_gr:
-                    if max_num_cells_grains < min_num_cells_grains:
-                        st.error("Maximal number of cells should be more than minimal number of cells !!!")
-                    else:
-                        results_grains = calc_grains(st.session_state.gr3d, st.session_state.grfname,
-                                                      st.session_state.threshold_grains,
-                                                      st.session_state.M, st.session_state.bins,
-                                                      st.session_state.scale, st.session_state.vol_cm3,
-                                                     min_num_cells_grains, max_num_cells_grains)
-                        st.session_state["results_grains"] = results_grains
-                        st.session_state["num_of_grains"] = results_grains["num_of_grains_for_calc"]
-                if st.session_state["results_grains"] is not None:
-                    st.session_state["numbins"].update(
-                        {name: st.session_state.bins for name in dictBinsGrains}
-                    )
-                    res_gr = st.session_state["results_grains"]
-                    with c26:
-                        st.markdown(""" Grains statistics """)
-                        table = res_gr["df_grains"]
-                        # st.dataframe(
-                        #     table.style.format({"Value": "{:.1f}"}),
-                        #     width="stretch"
-                        # )
-                        st.dataframe(
-                            table.style.format({
-                                "Value": lambda x: f"{int(x)}" if isinstance(x, int) or x.is_integer() else f"{x:.1f}"
-                            }),
-                            width="stretch"
+                    if start_gr:
+                        if max_num_cells_grains < min_num_cells_grains:
+                            st.error("Maximal number of cells should be more than minimal number of cells !!!")
+                        else:
+                            results_grains = calc_grains(st.session_state.gr3d, st.session_state.grfname,
+                                                          st.session_state.threshold_grains,
+                                                          st.session_state.M, st.session_state.bins,
+                                                          st.session_state.scale, st.session_state.vol_cm3,
+                                                         min_num_cells_grains, max_num_cells_grains)
+                            st.session_state["results_grains"] = results_grains
+                            st.session_state["num_of_grains"] = results_grains["num_of_grains_for_calc"]
+                    if st.session_state["results_grains"] is not None:
+                        st.session_state["numbins"].update(
+                            {name: st.session_state.bins for name in dictBinsGrains}
                         )
+                        res_gr = st.session_state["results_grains"]
+                        with c26:
+                            st.markdown(""" Grains statistics """)
+                            table = res_gr["df_grains"]
+                            st.dataframe(
+                                table.style.format({
+                                    "Value": lambda x: f"{int(x)}" if isinstance(x, int) or x.is_integer() else f"{x:.1f}"
+                                }),
+                                width="stretch"
+                            )
 
 
 def show_results_bubbles_in_grains():
+    grShape = None
+    bubShape = None
     c31, c32 = st.columns(2)
+    if st.session_state.GrainsFileName is not None:
+        grShape = st.session_state.gr3d.shape
+    if st.session_state.BubblesFileName is not None:
+        bubShape = st.session_state.bub3d.shape
     with c31:
-        if st.session_state.BubblesFileName is not None and st.session_state.GrainsFileName is not None:
-            if st.session_state.bubNx != st.session_state.grNx:
+        if st.session_state.BubblesFileName is not None:
+            if grShape != bubShape:
+            # if st.session_state.bubNx != st.session_state.grNx:
                 st.success(f"**Bubbles file name:**\n\n {st.session_state.BubblesFileName}\n\n "
-                       f"The linear size is M = {st.session_state.bubNx}")
+                       f"Dimension is ({st.session_state.bubNx}, {st.session_state.bubNy}, {st.session_state.bubNz})")
             else:
                 st.success(f"**Bubbles file name:**\n\n {st.session_state.BubblesFileName}")
         else:
@@ -356,66 +410,77 @@ def show_results_bubbles_in_grains():
             st.warning("Calculations of bubbles are needed")
     with c32:
         if st.session_state.GrainsFileName is not None:
-            if st.session_state.bubNx != st.session_state.grNx:
+            if grShape != bubShape:
+            # if st.session_state.bubNx != st.session_state.grNx:
                 st.success(f"**Grains file name:**\n\n {st.session_state.GrainsFileName}\n\n "
-                       f"The linear size is ({st.session_state.grNx})")
+                       f"Dimension is ({st.session_state.grNx}, {st.session_state.grNy}, {st.session_state.grNz})")
             else:
                 st.success(f"**Grains file name:**\n\n {st.session_state.GrainsFileName}")
         else:
             st.warning("File with grains was not downloaded")
         if st.session_state.results_grains is None:
             st.warning("Calculations of grains are needed")
-    c33, c34 = st.columns(2)
-    with c33:
-        if st.session_state.results_grains is not None and st.session_state.results_bubbles is not None:
-            if st.session_state.bubNx != st.session_state.grNx:
-                st.warning("Dimensions are not the same !!!")
-            else:
-                start_bub_in_gr = st.button(
-                    "▶️ Start calculations",
-                    key="button_bubgr",
-                    disabled=(
-                            st.session_state.get("results_grains") is None or
-                            st.session_state.get("results_bubbles") is None or
-                            st.session_state.bubNx != st.session_state.grNx
+
+    if st.session_state.BubblesFileName is not None and st.session_state.GrainsFileName is not None:
+        if grShape != bubShape:
+            st.warning("Dimensions are not the same !!!")
+        else:
+            c33, c34 = st.columns(2)
+            if st.session_state.results_grains is not None and st.session_state.results_bubbles is not None:
+                with c33:
+                    start_bub_in_gr = st.button(
+                        "▶️ Start calculations",
+                        key="button_bubgr",
+                        disabled=(
+                                st.session_state.get("results_grains") is None or
+                                st.session_state.get("results_bubbles") is None or
+                                st.session_state.bubNx != st.session_state.grNx
+                        )
                     )
-                )
-            if start_bub_in_gr:
-                if st.session_state["results_grains"] is not None and st.session_state["results_bubbles"] is not None:
-                    results_bubbles_in_grains = calc_bubbles_in_grains(
-                        st.session_state["results_grains"], st.session_state["results_bubbles"],
-                        st.session_state.threshold_grains, st.session_state.threshold_bubbles,
-                        st.session_state.M, st.session_state.bins,
-                        st.session_state.scale, st.session_state.vol_cm3)
-                    st.session_state["results_bubbles_in_grains"] = results_bubbles_in_grains
-    with c34:
-        if st.session_state.BubblesFileName is not None and st.session_state.GrainsFileName is not None:
-            col_cl1, col_cl2 = st.columns(2)
-            with col_cl1:
-                colorgr = st.selectbox("Color for Grains", list(color_options), index=5)
-            with col_cl2:
-                colorbub = st.selectbox("Color for Bubbles", list(color_options), index=12)
-            show_clip2(st.session_state.gr3d, st.session_state.bub3d,
-                       st.session_state.threshold_grains, st.session_state.threshold_bubbles,
-                       colorgr, colorbub)
+                if start_bub_in_gr:
+                    if (st.session_state["results_grains"] is not None and st.session_state["results_bubbles"] is not None):
+                        results_bubbles_in_grains = calc_bubbles_in_grains(
+                            st.session_state["results_grains"], st.session_state["results_bubbles"],
+                            st.session_state.threshold_grains, st.session_state.threshold_bubbles,
+                            st.session_state.M, st.session_state.bins,
+                            st.session_state.scale, st.session_state.vol_cm3)
+                        st.session_state["results_bubbles_in_grains"] = results_bubbles_in_grains
+            with c33:
+                if st.session_state["results_bubbles_in_grains"] is not None:
+                    st.session_state["dmax"] = (
+                        st.session_state["results_bubbles_in_grains"]["dmax"]
+                    )
 
-    with c33:
-        if st.session_state["results_bubbles_in_grains"] is not None:
-            st.session_state["dmax"] = (
-                st.session_state["results_bubbles_in_grains"]["dmax"]
-            )
-
-            st.session_state["numbins"].update(
-                {name: st.session_state.bins for name in dictBinsDists}
-            )
-            st.markdown(""" Distances between bubbles and grains """)
-            res_bub_in_gr = st.session_state["results_bubbles_in_grains"]
-            table = res_bub_in_gr["df_bubingrains"]
-            st.dataframe(
-                table.style.format({"Value": "{:.1f}"}),
-                width="stretch"
-            )
-
+                    st.session_state["numbins"].update(
+                        {name: st.session_state.bins for name in dictBinsDists}
+                    )
+                    st.markdown(""" Distances between bubbles and grains """)
+                    res_bub_in_gr = st.session_state["results_bubbles_in_grains"]
+                    table = res_bub_in_gr["df_bubingrains"]
+                    st.dataframe(
+                        table.style.format({"Value": "{:.1f}"}),
+                        width="stretch"
+                    )
+            with c34:
+                if st.session_state.BubblesFileName is not None and st.session_state.GrainsFileName is not None:
+                    if st.session_state.BubblesFileName != st.session_state.GrainsFileName:
+                        col_cl1, col_cl2 = st.columns(2)
+                        if st.session_state.grNz == 1:
+                            with col_cl1:
+                                colorgr2 = st.selectbox("Color scheme for Grains", list(color_schemes), index=0, key="color_gr_2d_2")
+                            with col_cl2:
+                                colorbub2 = st.selectbox("Color scheme for Bubbles", list(color_schemes), index=1, key="color_bub_2d_2")
+                            show_clip2_2D(st.session_state.gr3d, st.session_state.bub3d,
+                                          st.session_state.threshold_grains, st.session_state.threshold_bubbles,
+                                          colorgr2, colorbub2)
+                        else:
+                            with col_cl1:
+                                colorgr = st.selectbox("Color for Grains", list(color_options), index=5, key="color_gr_3d_2")
+                            with col_cl2:
+                                colorbub = st.selectbox("Color for Bubbles", list(color_options), index=12, key="color_bub_3d_2")
+                            show_clip2(st.session_state.gr3d, st.session_state.bub3d,
+                                       st.session_state.threshold_grains, st.session_state.threshold_bubbles,
+                                       colorgr, colorbub)
 
 @st.fragment
 def show_results_gas_in_bubbles():
