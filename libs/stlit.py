@@ -34,6 +34,7 @@ from libs.paraview import show_two_VTK
 from libs.paraview import show_three_VTK
 from libs.paraview import show_VTK_2D
 from libs.paraview import show_two_VTK_2D
+from libs.paraview import show_three_VTK_2D
 
 
 color_options = [
@@ -319,7 +320,7 @@ def show_results_grains():
                     if st.session_state.grNz == 1:
                         colorgr1 = st.selectbox("Color scheme for Grains", list(color_schemes), index=0, key="color_gr_2d_1")
                     else:
-                        colorgr1 = st.selectbox("Color for Grains", list(color_options), index=0, key="color_gr_3d_1")
+                        colorgr1 = st.selectbox("Color for Grains", list(color_options), index=2, key="color_gr_3d_1")
 
             with c23:
                 if st.session_state.grNz == 1:
@@ -394,8 +395,10 @@ def show_results_bubbles_in_grains():
     c31, c32 = st.columns(2)
     if st.session_state.GrainsFileName is not None:
         grShape = st.session_state.gr3d.shape
+        st.session_state.grShape = grShape
     if st.session_state.BubblesFileName is not None:
         bubShape = st.session_state.bub3d.shape
+        st.session_state.bubShape = bubShape
     with c31:
         if st.session_state.BubblesFileName is not None:
             if grShape != bubShape:
@@ -467,17 +470,17 @@ def show_results_bubbles_in_grains():
                         col_cl1, col_cl2 = st.columns(2)
                         if st.session_state.grNz == 1:
                             with col_cl1:
-                                colorgr2 = st.selectbox("Color scheme for Grains", list(color_schemes), index=0, key="color_gr_2d_2")
+                                colorgr2 = st.selectbox("Color scheme for Grains", list(color_schemes), index=1, key="color_gr_2d_2")
                             with col_cl2:
-                                colorbub2 = st.selectbox("Color scheme for Bubbles", list(color_schemes), index=1, key="color_bub_2d_2")
+                                colorbub2 = st.selectbox("Color scheme for Bubbles", list(color_schemes), index=0, key="color_bub_2d_2")
                             show_clip2_2D(st.session_state.gr3d, st.session_state.bub3d,
                                           st.session_state.threshold_grains, st.session_state.threshold_bubbles,
                                           colorgr2, colorbub2)
                         else:
                             with col_cl1:
-                                colorgr = st.selectbox("Color for Grains", list(color_options), index=5, key="color_gr_3d_2")
+                                colorgr = st.selectbox("Color for Grains", list(color_options), index=2, key="color_gr_3d_2")
                             with col_cl2:
-                                colorbub = st.selectbox("Color for Bubbles", list(color_options), index=12, key="color_bub_3d_2")
+                                colorbub = st.selectbox("Color for Bubbles", list(color_options), index=0, key="color_bub_3d_2")
                             show_clip2(st.session_state.gr3d, st.session_state.bub3d,
                                        st.session_state.threshold_grains, st.session_state.threshold_bubbles,
                                        colorgr, colorbub)
@@ -491,7 +494,6 @@ def show_results_gas_in_bubbles():
         key="gas_uploader",
         on_change=reset_gas,
     )
-
     if GasFileName is not None:
         st.session_state.GasFileName = GasFileName.name
         if st.session_state.gas3d is None:
@@ -499,6 +501,8 @@ def show_results_gas_in_bubbles():
             mincg = gas3d.min()
             maxcg = gas3d.max()
             st.session_state.gas3d = gas3d
+            gasShape = st.session_state.gas3d.shape
+            st.session_state.gasShape = gasShape
             st.session_state.gasfname = gasfname
             st.session_state.mincg = mincg
             st.session_state.maxcg = maxcg
@@ -506,73 +510,107 @@ def show_results_gas_in_bubbles():
             st.session_state.gasNy = gasNy
             st.session_state.gasNz = gasNz
 
-        colming, colmaxg = st.columns(2)
-        with colming:
-            st.success(f"Minimal value: **{st.session_state.mincg:.2f}**")
-        with colmaxg:
-            st.success(f"Maximal value: **{st.session_state.maxcg:.2f}**")
-
-        st.markdown("**Gas-atoms field parameters**")
-        colgas1, colgas2 = st.columns(2)
-        with colgas1:
-            mincg = float(st.session_state.mincg)
-            maxcg = float(st.session_state.maxcg)
-            threshold_gas = st.number_input(
-                "Threshold for Gas-atoms",
-                value=mincg + (maxcg - mincg) / 2,
-                min_value=mincg,
-                step=(maxcg - mincg) / 100,
-                max_value=maxcg
-            )
-            st.session_state.threshold_gas = threshold_gas
-        with colgas2:
-            color_gas = st.selectbox("Color for Gas-atoms field", list(color_options), index=0)
-
-        if st.session_state.BubblesFileName is not None and st.session_state.gasNx == st.session_state.bubNx:
-            st.markdown("**Bubbles field parameters**")
-            colbub1, colbub2 = st.columns(2)
-            with colbub1:
-                opacity_bub = st.slider("Opacity for Bubbles field", 0.0, 1.0, 0.5, key="gasinbub_op")
-            with colbub2:
-                color_bub = st.selectbox("Color for Bubbles field", list(color_options), index=12, key="gasinbub_col")
+    if st.session_state.GasFileName is not None:
+        if st.session_state.gasShape != st.session_state.bubShape:
+            st.warning(f"Dimension is ({st.session_state.gasNx}, {st.session_state.gasNy}, {st.session_state.gasNz})")
+            st.error("Dimensions are not the same !!!")
         else:
-            st.warning(f"Dimensions for bubbles and gas atoms are different")
+            colming, colmaxg = st.columns(2)
+            with colming:
+                st.success(f"Minimal value: **{st.session_state.mincg:.2f}**")
+            with colmaxg:
+                st.success(f"Maximal value: **{st.session_state.maxcg:.2f}**")
 
-        show_gr = False
-        if st.session_state.GrainsFileName is not None:
-            st.markdown("**Grains field parameters**")
-            colgr1, colgr2 = st.columns(2)
-            with colgr1:
-                show_gr = st.checkbox("Show Grain boundaries", value=False, key="gasinbub_showgb")
-            with colgr2:
-                color_gr = st.selectbox("Color for Grains field", list(color_options), index=5,
-                                             key="gasinbubgr_col")
+            st.markdown("**Gas-atoms field parameters**")
+            colgas1, colgas2 = st.columns(2)
+            with colgas1:
+                mincg = float(st.session_state.mincg)
+                maxcg = float(st.session_state.maxcg)
+                threshold_gas = st.number_input(
+                    "Threshold for Gas-atoms",
+                    value=mincg + (maxcg - mincg) / 2,
+                    min_value=mincg,
+                    step=(maxcg - mincg) / 100,
+                    max_value=maxcg
+                )
+                st.session_state.threshold_gas = threshold_gas
+            with colgas2:
+                if st.session_state.gasNz == 1:
+                    color_gas = st.selectbox("Color scale for Gas-atoms field", list(color_schemes), index=2, key="gasinbub_colG_2D")
+                else:
+                    color_gas = st.selectbox("Color for Gas-atoms field", list(color_options), index=1, key="gasinbub_colG_3D")
 
-        if st.session_state.BubblesFileName is not None and show_gr:
-            fig = show_three_VTK(st.session_state.gr3d, st.session_state.bub3d, st.session_state.gas3d,
-                               st.session_state.threshold_grains, st.session_state.threshold_bubbles, st.session_state.threshold_gas,
-                               color_gr, color_bub, color_gas, opacity1=1.0, opacity2=opacity_bub, opacity3=1.0)
-        elif st.session_state.BubblesFileName is not None and not show_gr:
-            fig = show_two_VTK(st.session_state.bub3d, st.session_state.gas3d,
-                               st.session_state.threshold_bubbles, st.session_state.threshold_gas,
-                               color_bub, color_gas, opacity1=opacity_bub, opacity2=1.0)
-        elif st.session_state.BubblesFileName is None and show_gr:
-            fig = show_two_VTK(st.session_state.gr3d, st.session_state.gas3d,
-                               st.session_state.threshold_grains, st.session_state.threshold_gas,
-                               color_gr, color_gas, opacity1=1.0, opacity2=1.0)
-        else:
-            fig = show_VTK(st.session_state.gas3d, st.session_state.threshold_gas, color_gas)
-        st.plotly_chart(fig, width="stretch")
+            if st.session_state.BubblesFileName is not None:# and st.session_state.gasNx == st.session_state.bubNx:
+                st.markdown("**Bubbles field parameters**")
+                colbub1, colbub2 = st.columns(2)
+                with colbub1:
+                    opacity_bub = st.slider("Opacity for Bubbles field", 0.0, 1.0, 0.5, key="gasinbub_op")
+                with colbub2:
+                    if st.session_state.bubNz == 1:
+                        color_bub = st.selectbox("Color for Bubbles field", list(color_schemes), index=0, key="gasinbub_colB_2D")
+                    else:
+                        color_bub = st.selectbox("Color for Bubbles field", list(color_options), index=0, key="gasinbub_colB_3D")
+
+            show_gr = None
+            if st.session_state.GrainsFileName is not None:
+                if st.session_state.gasShape != st.session_state.grShape:
+                    st.error("Dimensions are not the same !!!")
+                else:
+                    st.markdown("**Grains field parameters**")
+                    colgr1, colgr2 = st.columns(2)
+                    with colgr1:
+                        show_gr = st.checkbox("Show Grain boundaries", value=False, key="gasinbub_showgb")
+
+                    if show_gr:
+                        with colgr2:
+                            if st.session_state.grNz == 1:
+                                color_gr = st.selectbox("Color scheme for Grains field", list(color_schemes), index=1,
+                                                     key="gasinbubgr_colG_3D")
+                            else:
+                                color_gr = st.selectbox("Color for Grains field", list(color_options), index=2,
+                                                     key="gasinbubgr_colG_3D")
+
+            if st.session_state.gasNz == 1:
+                if st.session_state.BubblesFileName is not None and show_gr:
+                    fig = show_three_VTK_2D(st.session_state.gr3d, st.session_state.bub3d, st.session_state.gas3d,
+                                       st.session_state.threshold_grains, st.session_state.threshold_bubbles, st.session_state.threshold_gas,
+                                       color_gr, color_bub, color_gas, opacity1=1.0, opacity2=opacity_bub, opacity3=1.0)
+                elif st.session_state.BubblesFileName is not None and not show_gr:
+                    fig = show_two_VTK_2D(st.session_state.bub3d, st.session_state.gas3d,
+                                       st.session_state.threshold_bubbles, st.session_state.threshold_gas,
+                                       color_bub, color_gas, opacity1=opacity_bub, opacity2=1.0)
+                elif st.session_state.BubblesFileName is None and show_gr:
+                    fig = show_two_VTK_2D(st.session_state.gr3d, st.session_state.gas3d,
+                                       st.session_state.threshold_grains, st.session_state.threshold_gas,
+                                       color_gr, color_gas, opacity1=1.0, opacity2=1.0)
+                else:
+                    fig = show_VTK_2D(st.session_state.gas3d, st.session_state.threshold_gas, color_gas)
+            else:
+                if st.session_state.BubblesFileName is not None and show_gr:
+                    fig = show_three_VTK(st.session_state.gr3d, st.session_state.bub3d, st.session_state.gas3d,
+                                       st.session_state.threshold_grains, st.session_state.threshold_bubbles, st.session_state.threshold_gas,
+                                       color_gr, color_bub, color_gas, opacity1=1.0, opacity2=opacity_bub, opacity3=1.0)
+                elif st.session_state.BubblesFileName is not None and not show_gr:
+                    fig = show_two_VTK(st.session_state.bub3d, st.session_state.gas3d,
+                                       st.session_state.threshold_bubbles, st.session_state.threshold_gas,
+                                       color_bub, color_gas, opacity1=opacity_bub, opacity2=1.0)
+                elif st.session_state.BubblesFileName is None and show_gr:
+                    fig = show_two_VTK(st.session_state.gr3d, st.session_state.gas3d,
+                                       st.session_state.threshold_grains, st.session_state.threshold_gas,
+                                       color_gr, color_gas, opacity1=1.0, opacity2=1.0)
+                else:
+                    fig = show_VTK(st.session_state.gas3d, st.session_state.threshold_gas, color_gas)
+            st.plotly_chart(fig, width="stretch")
 
 
 @st.fragment
 def show_results_vac_in_bubbles():
     st.subheader("***Vacancies in Bubbles***")
     VacFileName = st.file_uploader(
-        "Download vacancies file",
+        "Download vacancy file",
         type=["vtk"],
         key="vac_uploader",
-        on_change=reset_vac,
+        on_change=reset_vac
     )
     if VacFileName is not None:
         st.session_state.VacFileName = VacFileName.name
@@ -581,65 +619,185 @@ def show_results_vac_in_bubbles():
             mincv = vac3d.min()
             maxcv = vac3d.max()
             st.session_state.vac3d = vac3d
+            vacShape = st.session_state.vac3d.shape
+            st.session_state.vacShape = vacShape
             st.session_state.vacfname = vacfname
             st.session_state.mincv = mincv
             st.session_state.maxcv = maxcv
+            st.session_state.vacNx = vacNx
+            st.session_state.vacNy = vacNy
+            st.session_state.vacNz = vacNz
 
-        colminv, colmaxv = st.columns(2)
-        with colminv:
-            st.success(f"Minimal value: **{st.session_state.mincv:.2f}**")
-        with colmaxv:
-            st.success(f"Maximal value: **{st.session_state.maxcv:.2f}**")
-
-        st.markdown("**Vacancies field parameters**")
-        colvac1, colvac2 = st.columns(2)
-        with colvac1:
-            mincv = float(st.session_state.mincv)
-            maxcv = float(st.session_state.maxcv)
-            threshold_vac = st.number_input(
-                "Threshold for Vacancies",
-                value=mincv + (maxcv - mincv) / 2,
-                min_value=mincv,
-                step=(maxcv - mincv) / 100,
-                max_value=maxcv
-            )
-            st.session_state.threshold_vac = threshold_vac
-        with colvac2:
-            color_vac = st.selectbox("Color for Vacancies field", list(color_options), index=2)
-
-        if st.session_state.BubblesFileName is not None:
-            st.markdown("**Bubbles field parameters**")
-            colbub1, colbub2 = st.columns(2)
-            with colbub1:
-                opacity_bub = st.slider("Opacity for Bubbles field", 0.0, 1.0, 0.5, key="vacinbub_op")
-            with colbub2:
-                color_bub = st.selectbox("Color for Bubbles field", list(color_options), index=12, key="vacinbub_col")
-
-        show_gr = False
-        if st.session_state.GrainsFileName is not None:
-            st.markdown("**Grains field parameters**")
-            colgr1, colgr2 = st.columns(2)
-            with colgr1:
-                show_gr = st.checkbox("Show Grain boundaries", value=False, key="vacinbub_showgb")
-            with colgr2:
-                color_gr = st.selectbox("Color for Grains field", list(color_options), index=5,
-                                             key="vacinbubgr_col")
-
-        if st.session_state.BubblesFileName is not None and show_gr:
-            fig = show_three_VTK(st.session_state.gr3d, st.session_state.bub3d, st.session_state.vac3d,
-                               st.session_state.threshold_grains, st.session_state.threshold_bubbles, st.session_state.threshold_vac,
-                               color_gr, color_bub, color_vac, opacity1=1.0, opacity2=opacity_bub, opacity3=1.0)
-        elif st.session_state.BubblesFileName is not None and not show_gr:
-            fig = show_two_VTK(st.session_state.bub3d, st.session_state.vac3d,
-                               st.session_state.threshold_bubbles, st.session_state.threshold_vac,
-                               color_bub, color_vac, opacity1=opacity_bub, opacity2=1.0)
-        elif st.session_state.BubblesFileName is None and show_gr:
-            fig = show_two_VTK(st.session_state.gr3d, st.session_state.vac3d,
-                               st.session_state.threshold_grains, st.session_state.threshold_vac,
-                               color_gr, color_vac, opacity1=1.0, opacity2=1.0)
+    if st.session_state.VacFileName is not None:
+        if st.session_state.vacShape != st.session_state.bubShape:
+            st.warning(f"Dimension is ({st.session_state.vacNx}, {st.session_state.vacNy}, {st.session_state.vacNz})")
+            st.error("Dimensions are not the same !!!")
         else:
-            fig = show_VTK(st.session_state.vac3d, st.session_state.threshold_vac, color_vac)
-        st.plotly_chart(fig, width="stretch")
+            colminv, colmaxv = st.columns(2)
+            with colminv:
+                st.success(f"Minimal value: **{st.session_state.mincv:.2f}**")
+            with colmaxv:
+                st.success(f"Maximal value: **{st.session_state.maxcv:.2f}**")
+
+            st.markdown("**Vacancy field parameters**")
+            colvac1, colvac2 = st.columns(2)
+            with colvac1:
+                mincv = float(st.session_state.mincv)
+                maxcv = float(st.session_state.maxcv)
+                threshold_vac = st.number_input(
+                    "Threshold for Vacancies",
+                    value=mincv + (maxcv - mincv) / 2,
+                    min_value=mincv,
+                    step=(maxcv - mincv) / 100,
+                    max_value=maxcv
+                )
+                st.session_state.threshold_vac = threshold_vac
+            with colvac2:
+                if st.session_state.vacNz == 1:
+                    color_vac = st.selectbox("Color scale for Vacancy field", list(color_schemes), index=3, key="vacinbub_colG_2D")
+                else:
+                    color_vac = st.selectbox("Color for Vacancy field", list(color_options), index=3, key="vacinbub_colG_3D")
+
+            if st.session_state.BubblesFileName is not None:# and st.session_state.gasNx == st.session_state.bubNx:
+                st.markdown("**Bubbles field parameters**")
+                colbub1, colbub2 = st.columns(2)
+                with colbub1:
+                    opacity_bub = st.slider("Opacity for Bubbles field", 0.0, 1.0, 0.5, key="vacinbub_op")
+                with colbub2:
+                    if st.session_state.bubNz == 1:
+                        color_bub = st.selectbox("Color for Bubbles field", list(color_schemes), index=0, key="vacinbub_colB_2D")
+                    else:
+                        color_bub = st.selectbox("Color for Bubbles field", list(color_options), index=0, key="vacinbub_colB_3D")
+
+            show_gr = None
+            if st.session_state.GrainsFileName is not None:
+                if st.session_state.vacShape != st.session_state.grShape:
+                    st.error("Dimensions are not the same !!!")
+                else:
+                    st.markdown("**Grains field parameters**")
+                    colgr1, colgr2 = st.columns(2)
+                    with colgr1:
+                        show_gr = st.checkbox("Show Grain boundaries", value=False, key="vacinbub_showgb")
+
+                    if show_gr:
+                        with colgr2:
+                            if st.session_state.grNz == 1:
+                                color_gr = st.selectbox("Color scheme for Grains field", list(color_schemes), index=1,
+                                                     key="vacinbubgr_colG_3D")
+                            else:
+                                color_gr = st.selectbox("Color for Grains field", list(color_options), index=2,
+                                                     key="vacinbubgr_colG_3D")
+
+            if st.session_state.vacNz == 1:
+                if st.session_state.BubblesFileName is not None and show_gr:
+                    fig = show_three_VTK_2D(st.session_state.gr3d, st.session_state.bub3d, st.session_state.vac3d,
+                                       st.session_state.threshold_grains, st.session_state.threshold_bubbles, st.session_state.threshold_vac,
+                                       color_gr, color_bub, color_vac, opacity1=1.0, opacity2=opacity_bub, opacity3=1.0)
+                elif st.session_state.BubblesFileName is not None and not show_gr:
+                    fig = show_two_VTK_2D(st.session_state.bub3d, st.session_state.vac3d,
+                                       st.session_state.threshold_bubbles, st.session_state.threshold_vac,
+                                       color_bub, color_vac, opacity1=opacity_bub, opacity2=1.0)
+                elif st.session_state.BubblesFileName is None and show_gr:
+                    fig = show_two_VTK_2D(st.session_state.gr3d, st.session_state.vac3d,
+                                       st.session_state.threshold_grains, st.session_state.threshold_vac,
+                                       color_gr, color_vac, opacity1=1.0, opacity2=1.0)
+                else:
+                    fig = show_VTK_2D(st.session_state.vac3d, st.session_state.threshold_vac, color_vac)
+            else:
+                if st.session_state.BubblesFileName is not None and show_gr:
+                    fig = show_three_VTK(st.session_state.gr3d, st.session_state.bub3d, st.session_state.vac3d,
+                                       st.session_state.threshold_grains, st.session_state.threshold_bubbles, st.session_state.threshold_vac,
+                                       color_gr, color_bub, color_vac, opacity1=1.0, opacity2=opacity_bub, opacity3=1.0)
+                elif st.session_state.BubblesFileName is not None and not show_gr:
+                    fig = show_two_VTK(st.session_state.bub3d, st.session_state.vac3d,
+                                       st.session_state.threshold_bubbles, st.session_state.threshold_vac,
+                                       color_bub, color_vac, opacity1=opacity_bub, opacity2=1.0)
+                elif st.session_state.BubblesFileName is None and show_gr:
+                    fig = show_two_VTK(st.session_state.gr3d, st.session_state.vac3d,
+                                       st.session_state.threshold_grains, st.session_state.threshold_vac,
+                                       color_gr, color_vac, opacity1=1.0, opacity2=1.0)
+                else:
+                    fig = show_VTK(st.session_state.vac3d, st.session_state.threshold_vac, color_vac)
+            st.plotly_chart(fig, width="stretch")
+
+
+
+
+
+
+    # st.subheader("***Vacancies in Bubbles***")
+    # VacFileName = st.file_uploader(
+    #     "Download vacancies file",
+    #     type=["vtk"],
+    #     key="vac_uploader",
+    #     on_change=reset_vac,
+    # )
+    # if VacFileName is not None:
+    #     st.session_state.VacFileName = VacFileName.name
+    #     if st.session_state.vac3d is None:
+    #         vacNx, vacNy, vacNz, vac3d, vacfname = getdata(VacFileName)
+    #         mincv = vac3d.min()
+    #         maxcv = vac3d.max()
+    #         st.session_state.vac3d = vac3d
+    #         st.session_state.vacfname = vacfname
+    #         st.session_state.mincv = mincv
+    #         st.session_state.maxcv = maxcv
+    #
+    #     colminv, colmaxv = st.columns(2)
+    #     with colminv:
+    #         st.success(f"Minimal value: **{st.session_state.mincv:.2f}**")
+    #     with colmaxv:
+    #         st.success(f"Maximal value: **{st.session_state.maxcv:.2f}**")
+    #
+    #     st.markdown("**Vacancies field parameters**")
+    #     colvac1, colvac2 = st.columns(2)
+    #     with colvac1:
+    #         mincv = float(st.session_state.mincv)
+    #         maxcv = float(st.session_state.maxcv)
+    #         threshold_vac = st.number_input(
+    #             "Threshold for Vacancies",
+    #             value=mincv + (maxcv - mincv) / 2,
+    #             min_value=mincv,
+    #             step=(maxcv - mincv) / 100,
+    #             max_value=maxcv
+    #         )
+    #         st.session_state.threshold_vac = threshold_vac
+    #     with colvac2:
+    #         color_vac = st.selectbox("Color for Vacancies field", list(color_options), index=2)
+    #
+    #     if st.session_state.BubblesFileName is not None:
+    #         st.markdown("**Bubbles field parameters**")
+    #         colbub1, colbub2 = st.columns(2)
+    #         with colbub1:
+    #             opacity_bub = st.slider("Opacity for Bubbles field", 0.0, 1.0, 0.5, key="vacinbub_op")
+    #         with colbub2:
+    #             color_bub = st.selectbox("Color for Bubbles field", list(color_options), index=12, key="vacinbub_col")
+    #
+    #     show_gr = False
+    #     if st.session_state.GrainsFileName is not None:
+    #         st.markdown("**Grains field parameters**")
+    #         colgr1, colgr2 = st.columns(2)
+    #         with colgr1:
+    #             show_gr = st.checkbox("Show Grain boundaries", value=False, key="vacinbub_showgb")
+    #         with colgr2:
+    #             color_gr = st.selectbox("Color for Grains field", list(color_options), index=5,
+    #                                          key="vacinbubgr_col")
+    #
+    #     if st.session_state.BubblesFileName is not None and show_gr:
+    #         fig = show_three_VTK(st.session_state.gr3d, st.session_state.bub3d, st.session_state.vac3d,
+    #                            st.session_state.threshold_grains, st.session_state.threshold_bubbles, st.session_state.threshold_vac,
+    #                            color_gr, color_bub, color_vac, opacity1=1.0, opacity2=opacity_bub, opacity3=1.0)
+    #     elif st.session_state.BubblesFileName is not None and not show_gr:
+    #         fig = show_two_VTK(st.session_state.bub3d, st.session_state.vac3d,
+    #                            st.session_state.threshold_bubbles, st.session_state.threshold_vac,
+    #                            color_bub, color_vac, opacity1=opacity_bub, opacity2=1.0)
+    #     elif st.session_state.BubblesFileName is None and show_gr:
+    #         fig = show_two_VTK(st.session_state.gr3d, st.session_state.vac3d,
+    #                            st.session_state.threshold_grains, st.session_state.threshold_vac,
+    #                            color_gr, color_vac, opacity1=1.0, opacity2=1.0)
+    #     else:
+    #         fig = show_VTK(st.session_state.vac3d, st.session_state.threshold_vac, color_vac)
+    #     st.plotly_chart(fig, width="stretch")
 
 
 @st.fragment

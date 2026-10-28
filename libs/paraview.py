@@ -410,6 +410,7 @@ def show_two_VTK_2D(field1, field2, th1, th2, color1, color2, opacity1=1.0, opac
         go.Scatter(
             x=x,
             y=y,
+            opacity=opacity1,
             mode="markers",
             marker=dict(
                 size=5,
@@ -427,11 +428,100 @@ def show_two_VTK_2D(field1, field2, th1, th2, color1, color2, opacity1=1.0, opac
         go.Scatter(
             x=x,
             y=y,
+            opacity=opacity2,
             mode="markers",
             marker=dict(
                 size=5,
                 color=val,
                 colorscale=color2#"Viridis"
+            )
+        )
+    )
+
+    # Рамка розрахункової області
+    fig.add_trace(
+        go.Scatter(
+            x=[0, Nx - 1, Nx - 1, 0, 0],
+            y=[0, 0, Ny - 1, Ny - 1, 0],
+            mode="lines",
+            line=dict(color="black", width=2),
+            showlegend=False,
+            hoverinfo="skip",
+        )
+    )
+
+    fig.update_layout(
+        xaxis=dict(
+            visible=False,
+            range=[0, Nx - 1],
+            scaleanchor="y",
+            scaleratio=1,
+        ),
+        yaxis=dict(
+            visible=False,
+            range=[Ny - 1, 0],
+        ),
+        margin=dict(l=0, r=0, b=0, t=0),
+    )
+
+    return fig
+
+
+def show_three_VTK_2D(field1, field2, field3, th1, th2, th3, color1, color2, color3, opacity1=1.0, opacity2=1.0, opacity3=1.0):
+    Nx, Ny, _ = field1.shape
+
+    x, y, z = np.where(field1 >= th1)
+    val = field1[x, y, z]
+
+    fig = go.Figure()
+
+    # Точки, що перевищують поріг
+    fig.add_trace(
+        go.Scatter(
+            x=x,
+            y=y,
+            opacity=opacity1,
+            mode="markers",
+            marker=dict(
+                size=5,
+                color=val,
+                colorscale=color1#"Viridis"
+            )
+        )
+    )
+
+    x, y, z = np.where(field2 >= th2)
+    val = field2[x, y, z]
+
+    # Точки, що перевищують поріг
+    fig.add_trace(
+        go.Scatter(
+            x=x,
+            y=y,
+            opacity=opacity2,
+            mode="markers",
+            marker=dict(
+                size=5,
+                color=val,
+                colorscale=color2#"Viridis"
+            )
+        )
+    )
+
+    x, y, z = np.where(field3 >= th3)
+    val = field2[x, y, z]
+
+    # Точки, що перевищують поріг
+    fig.add_trace(
+        go.Scatter(
+            x=x,
+            y=y,
+            opacity=opacity3,
+            mode="markers",
+            marker=dict(
+                size=5,
+                color=val,
+                colorscale=color3#"Viridis"
             )
         )
     )

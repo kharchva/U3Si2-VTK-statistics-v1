@@ -53,8 +53,23 @@ DEFAULT_STATE = {
     "GasFileName": None,
     "VacFileName": None,
     "threshold_gas": None,
-    "threshold_vaac": None
-
+    "threshold_vaac": None,
+    "bubShape": None,
+    "grShape": None,
+    "gasShape": None,
+    "vacShape": None,
+    "bubNx": None,
+    "bubNy": None,
+    "bubNz": None,
+    "grNx": None,
+    "grNy": None,
+    "grNz": None,
+    "gasNx": None,
+    "gasNy": None,
+    "gasNz": None,
+    "vacNx": None,
+    "vacNy": None,
+    "vacNz": None
 }
 
 
@@ -308,11 +323,15 @@ if st.session_state.set_par:
         with colbubs:
             if st.session_state.BubblesFileName is not None:
                 st.success(f"**Bubbles file name:**\n\n {st.session_state.BubblesFileName}")
+                if st.session_state.bubShape != st.session_state.grShape:
+                    st.warning(f"Dimension is ({st.session_state.bubNx}, {st.session_state.bubNy}, {st.session_state.bubNz})")
             else:
                 st.warning("File with bubbles was not downloaded")
         with colgrns:
             if st.session_state.GrainsFileName is not None:
                 st.success(f"**Grains file name:**\n\n {st.session_state.GrainsFileName}")
+                if st.session_state.grShape != st.session_state.bubShape:
+                    st.warning(f"Dimension is ({st.session_state.grNx}, {st.session_state.grNy}, {st.session_state.grNz})")
             else:
                 st.warning("File with grains was not downloaded")
 
