@@ -2,6 +2,7 @@ import streamlit as st
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import numpy as np
+import math
 
 from libs.distributions import calc_distribution_from_data
 from libs.distributions import calc_dependencies_on_distance
@@ -171,15 +172,20 @@ def show_results_bubbles():
 
                 minv = float(st.session_state.minv)
                 maxv = float(st.session_state.maxv)
+                step = (maxv - minv) / 100
+                decimals = max(0, math.ceil(-math.log10(step)))
+                fmt = f"%.{decimals}f"
                 col123, col124 = st.columns(2)
                 with col123:
                     threshold_bubbles = st.number_input(
                         "Threshold for Bubbles",
                         value=minv + (maxv - minv) / 2,
                         min_value=minv,
-                        step=(maxv - minv) / 100,
+                        # step=(maxv - minv) / 100,
                         max_value=maxv,
-                        key="value_threshold_bubbles"
+                        key="value_threshold_bubbles",
+                        step=step,
+                        format=fmt
                     )
                     st.session_state.threshold_bubbles = threshold_bubbles
                 with col124:
@@ -305,15 +311,20 @@ def show_results_grains():
 
                 minvg = float(st.session_state.minvg)
                 maxvg = float(st.session_state.maxvg)
+                step = (maxvg - minvg) / 100
+                decimals = max(0, math.ceil(-math.log10(step)))
+                fmt = f"%.{decimals}f"
                 col223, col224 = st.columns(2)
                 with col223:
                     threshold_grains = st.number_input(
                         "Threshold for Grains",
                         value=minvg + (maxvg - minvg) / 2,
                         min_value=minvg,
-                        step=(maxvg - minvg) / 100,
+                        # step=(maxvg - minvg) / 100,
                         max_value=maxvg,
-                        key="value_threshold_grains"
+                        key="value_threshold_grains",
+                        step=step,
+                        format=fmt
                     )
                     st.session_state.threshold_grains = threshold_grains
                 with col224:
@@ -526,12 +537,17 @@ def show_results_gas_in_bubbles():
             with colgas1:
                 mincg = float(st.session_state.mincg)
                 maxcg = float(st.session_state.maxcg)
+                step = (maxcg - mincg) / 100
+                decimals = max(0, math.ceil(-math.log10(step)))
+                fmt = f"%.{decimals}f"
                 threshold_gas = st.number_input(
                     "Threshold for Gas-atoms",
                     value=mincg + (maxcg - mincg) / 2,
                     min_value=mincg,
-                    step=(maxcg - mincg) / 100,
-                    max_value=maxcg
+                    # step=(maxcg - mincg) / 100,
+                    max_value=maxcg,
+                    step=step,
+                    format=fmt
                 )
                 st.session_state.threshold_gas = threshold_gas
             with colgas2:
@@ -644,12 +660,17 @@ def show_results_vac_in_bubbles():
             with colvac1:
                 mincv = float(st.session_state.mincv)
                 maxcv = float(st.session_state.maxcv)
+                step = (maxcv - mincv) / 100
+                decimals = max(0, math.ceil(-math.log10(step)))
+                fmt = f"%.{decimals}f"
                 threshold_vac = st.number_input(
                     "Threshold for Vacancies",
                     value=mincv + (maxcv - mincv) / 2,
                     min_value=mincv,
-                    step=(maxcv - mincv) / 100,
-                    max_value=maxcv
+                    # step=(maxcv - mincv) / 100,
+                    max_value=maxcv,
+                    step=step,
+                    format=fmt
                 )
                 st.session_state.threshold_vac = threshold_vac
             with colvac2:
